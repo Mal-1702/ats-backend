@@ -1,7 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile, File
 
 router = APIRouter()
 
-@router.get("/rank", tags=["Scoring"])
-def rank_resumes():
-    return {"message": "Resume ranking endpoint"}
+@router.post("/upload-resume", tags=["Resume"])
+async def upload_resume(file: UploadFile = File(...)):
+    return {"filename": file.filename, "status": "uploaded"}
