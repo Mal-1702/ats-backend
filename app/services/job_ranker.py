@@ -10,7 +10,7 @@ def rank_resumes_for_job(job, resumes, uploads_dir="uploads"):
     """
     results = []
 
-    job_id, _, skills, keywords, min_experience = job
+    _, _, skills, keywords, min_experience = job
 
     for resume_id, filename in resumes:
         path = os.path.join(uploads_dir, filename)
@@ -18,21 +18,30 @@ def rank_resumes_for_job(job, resumes, uploads_dir="uploads"):
         if not os.path.exists(path):
             continue
 
-        text = parse_resume(path)
+        try:
+            text = parse_resume(path)
+        except Exception as e:
+            print(f"[ERROR] Failed to parse {filename}: {e}")
+            continue
 
-        score = score_resume(
-            resume_text=text,
-            required_skills=skills,
-            keywords=keywords,
-            min_experience=min_experience
-        )
+        job_payload = {
+            "skills": skills,
+            "keywords": keywords,
+            "min_experience": min_experience
+        }
+
+        try:
+            score_data = score_resume(text, job_payload)
+        except Exception as e:
+            print(f"[ERROR] Failed to score {filename}: {e}")
+            continue
 
         results.append({
             "resume_id": resume_id,
             "filename": filename,
-            "score": score
+            "score": score_data["final_score"],
+            "breakdown": score_data["breakdown"],
+            "explanation": score_data["explanation"]
         })
 
-    # Sort high → low
-    results.sort(key=lambda x: x["score"], reverse=True)
     return results

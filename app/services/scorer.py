@@ -42,7 +42,7 @@ def experience_score(resume_text: str, required_years: float = 0) -> int:
 
     # No experience mentioned
     if candidate_years == 0:
-        return 20
+        return 10
 
     # If job specifies minimum experience
     if required_years > 0:
