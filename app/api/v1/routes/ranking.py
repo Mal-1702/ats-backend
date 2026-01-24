@@ -4,6 +4,12 @@ import os
 
 from app.services.resume_parser import parse_resume
 from app.services.scorer import score_resume
+from app.db.crud import (
+    get_job_by_id,
+    get_all_resume_files,
+    upsert_ranking
+)
+from app.services.job_ranker import rank_resumes_for_job
 
 router = APIRouter()
 
@@ -59,4 +65,25 @@ def rank_resume(job: JobRequest):
     return {
         "filename": job.filename,
         "result": result
+    }
+
+@router.post("/rank/job/{job_id}", tags=["Ranking"])
+def rank_job(job_id: int):
+    job = get_job_by_id(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    resumes = get_all_resume_files()
+    if not resumes:
+        return {"message": "No resumes found", "results": []}
+
+    results = rank_resumes_for_job(job, resumes)
+
+    # Persist results
+    for r in results:
+        upsert_ranking(job_id, r["resume_id"], r["score"])
+
+    return {
+        "job_id": job_id,
+        "ranked_resumes": results
     }

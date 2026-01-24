@@ -144,3 +144,4 @@ def upsert_ranking(job_id: int, resume_id: int, score: int):
 
     cursor.close()
     conn.close()
+    
