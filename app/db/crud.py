@@ -97,3 +97,50 @@ def get_all_jobs() -> List[Tuple]:
     conn.close()
 
     return rows
+
+def get_job_by_id(job_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = """
+        SELECT id, title, skills, keywords, min_experience
+        FROM jobs
+        WHERE id = %s;
+    """
+    cursor.execute(query, (job_id,))
+    row = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+    return row
+
+
+def get_all_resume_files():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = "SELECT id, filename FROM resumes;"
+    cursor.execute(query)
+    rows = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+    return rows
+
+
+def upsert_ranking(job_id: int, resume_id: int, score: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = """
+        INSERT INTO rankings (job_id, resume_id, score)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (job_id, resume_id)
+        DO UPDATE SET score = EXCLUDED.score, created_at = CURRENT_TIMESTAMP;
+    """
+
+    cursor.execute(query, (job_id, resume_id, score))
+    conn.commit()
+
+    cursor.close()
+    conn.close()
