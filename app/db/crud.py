@@ -144,4 +144,27 @@ def upsert_ranking(job_id: int, resume_id: int, score: int):
 
     cursor.close()
     conn.close()
-    
+
+def get_rankings_for_job(job_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = """
+        SELECT
+            r.resume_id,
+            res.filename,
+            r.score,
+            r.created_at
+        FROM rankings r
+        JOIN resumes res ON r.resume_id = res.id
+        WHERE r.job_id = %s
+        ORDER BY r.score DESC;
+    """
+
+    cursor.execute(query, (job_id,))
+    rows = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return rows

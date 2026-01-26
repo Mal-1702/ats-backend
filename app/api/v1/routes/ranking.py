@@ -10,6 +10,8 @@ from app.db.crud import (
     upsert_ranking
 )
 from app.services.job_ranker import rank_resumes_for_job
+from app.db.crud import get_rankings_for_job
+
 
 router = APIRouter()
 
@@ -86,4 +88,24 @@ def rank_job(job_id: int):
     return {
         "job_id": job_id,
         "ranked_resumes": results
+    }
+
+@router.get("/rank/job/{job_id}", tags=["Ranking"])
+def get_job_rankings(job_id: int):
+    rows = get_rankings_for_job(job_id)
+
+    if not rows:
+        return {"job_id": job_id, "ranked_resumes": []}
+
+    return {
+        "job_id": job_id,
+        "ranked_resumes": [
+            {
+                "resume_id": r[0],
+                "filename": r[1],
+                "score": r[2],
+                "ranked_at": r[3]
+            }
+            for r in rows
+        ]
     }
