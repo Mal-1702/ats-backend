@@ -182,3 +182,19 @@ def get_rankings_for_job(job_id: int):
     conn.close()
 
     return rows
+
+def update_resume_parsed_data(resume_id, experience_years, extracted_skills, parsed_text):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE resumes
+        SET experience_years = %s,
+            extracted_skills = %s,
+            parsed_text = %s
+        WHERE id = %s
+    """, (experience_years, extracted_skills, parsed_text, resume_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()

@@ -1,6 +1,9 @@
 import os
 from app.services.resume_parser import parse_resume
 from app.services.scorer import score_resume
+from app.db.crud import update_resume_parsed_data
+from app.services.scorer import extract_years_of_experience
+
 
 
 def rank_resumes_for_job(job, resumes, uploads_dir="uploads"):
@@ -10,7 +13,7 @@ def rank_resumes_for_job(job, resumes, uploads_dir="uploads"):
     """
     results = []
 
-    _, _, skills, keywords, min_experience = job
+    job_id, _, skills, keywords, min_experience = job
 
     for resume_id, filename in resumes:
         path = os.path.join(uploads_dir, filename)
@@ -20,6 +23,14 @@ def rank_resumes_for_job(job, resumes, uploads_dir="uploads"):
 
         try:
             text = parse_resume(path)
+            years = extract_years_of_experience(text)
+
+            update_resume_parsed_data(
+                resume_id=resume_id,
+                experience_years=years,
+                extracted_skills=skills,
+                parsed_text=text
+            )
         except Exception as e:
             print(f"[ERROR] Failed to parse {filename}: {e}")
             continue
