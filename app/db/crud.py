@@ -1,44 +1,58 @@
 from app.db.dbase import get_db_connection
 from typing import List, Tuple
 from app.models.job import JobCreate
+from app.services.scorer import extract_years_of_experience
+from app.services.resume_parser import parse_resume
 
 
 def insert_resume(filename: str):
-    """
-    Save uploaded resume metadata into the database.
-    """
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    path = f"uploads/{filename}"
+
+    try:
+        text = parse_resume(path)
+    except:
+        text = ""
+
+    experience = extract_years_of_experience(text)
+
     query = """
-        INSERT INTO resumes (filename)
-        VALUES (%s);
+        INSERT INTO resumes (filename, experience_years, parsed_text)
+        VALUES (%s, %s, %s)
+        RETURNING id;
     """
 
-    cursor.execute(query, (filename,))
-    conn.commit()
+    cursor.execute(query, (filename, experience, text))
+    resume_id = cursor.fetchone()[0]
 
+    conn.commit()
     cursor.close()
     conn.close()
 
+    return resume_id
 
 def get_all_resumes():
     """
     Fetch all uploaded resumes from the database.
     """
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cur = conn.cursor()
 
-    query = """
-        SELECT id, filename, uploaded_at
+    cur.execute("""
+        SELECT id,
+               filename,
+               uploaded_at,
+               experience_years,
+               extracted_skills
         FROM resumes
-        ORDER BY uploaded_at DESC;
-    """
+        ORDER BY uploaded_at DESC
+    """)
 
-    cursor.execute(query)
-    rows = cursor.fetchall()
+    rows = cur.fetchall()
 
-    cursor.close()
+    cur.close()
     conn.close()
 
     return rows
