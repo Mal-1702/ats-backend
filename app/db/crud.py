@@ -130,6 +130,9 @@ def get_job_by_id(job_id: int):
 
 
 def get_all_resume_files():
+    '''
+    for fectching all resumes 
+    '''
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -143,6 +146,16 @@ def get_all_resume_files():
 
 
 def upsert_ranking(job_id: int, resume_id: int, score: int):
+    '''
+    ranking resumes based on scores and keywords
+    
+    :param job_id: Description
+    :type job_id: int
+    :param resume_id: Description
+    :type resume_id: int
+    :param score: Description
+    :type score: int
+    '''
     conn = get_db_connection()
     cursor = conn.cursor()
 
