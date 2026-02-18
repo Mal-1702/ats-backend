@@ -1,0 +1,420 @@
+.job-create-page {
+    min-height: calc(100vh - 70px);
+    background: linear-gradient(135deg, #0a0a12 0%, #0f0f14 50%, #0a0a12 100%);
+    padding: 2.5rem 0;
+}
+
+.job-create-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    animation: fadeIn 0.6s ease-out;
+}
+
+.job-create-header {
+    margin-bottom: 2.5rem;
+}
+
+.job-create-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--text-primary), var(--neon-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+}
+
+.job-create-header p {
+    color: var(--text-secondary);
+    font-size: 1.063rem;
+}
+
+.job-create-card {
+    background: rgba(26, 26, 36, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1.5rem;
+    padding: 3rem 2.5rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(59, 130, 246, 0.1);
+}
+
+/* Form Styling */
+.job-form .form-group {
+    margin-bottom: 2rem;
+}
+
+.job-form label {
+    display: block;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.938rem;
+    margin-bottom: 1.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    position: relative;
+}
+
+.job-form input,
+.job-form textarea,
+.job-form select {
+    width: 100%;
+    padding: 1.25rem 1.5rem;
+    background: rgba(15, 15, 20, 0.6);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    line-height: 1.5;
+}
+
+.job-form input::placeholder,
+.job-form textarea::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+    opacity: 1;
+}
+
+.job-form input:focus,
+.job-form textarea:focus,
+.job-form select:focus {
+    outline: none;
+    border-color: var(--neon-cyan);
+    background: rgba(15, 15, 20, 0.8);
+    box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1),
+        0 0 24px rgba(6, 182, 212, 0.2);
+    transform: translateY(-2px);
+}
+
+.job-form textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+/* Explicit class names used in JSX */
+.form-label {
+    display: block !important;
+    position: static !important;
+    color: var(--text-secondary) !important;
+    font-weight: 600 !important;
+    font-size: 0.938rem !important;
+    margin-bottom: 1.25rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    transform: none !important;
+    top: auto !important;
+    left: auto !important;
+    pointer-events: auto !important;
+}
+
+.form-input {
+    width: 100% !important;
+    padding: 1.25rem 1.5rem !important;
+    background: rgba(15, 15, 20, 0.6) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 0.75rem !important;
+    color: var(--text-primary) !important;
+    font-size: 1rem !important;
+    font-family: inherit !important;
+    transition: all 0.3s ease !important;
+    line-height: 1.5 !important;
+}
+
+.form-input::placeholder {
+    color: rgba(255, 255, 255, 0.3) !important;
+    opacity: 1 !important;
+}
+
+.form-input:focus {
+    outline: none !important;
+    border-color: var(--neon-cyan) !important;
+    background: rgba(15, 15, 20, 0.8) !important;
+    box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1),
+        0 0 24px rgba(6, 182, 212, 0.2) !important;
+    transform: translateY(-2px) !important;
+}
+
+.form-group {
+    margin-bottom: 7rem !important;
+    position: relative !important;
+}
+
+/* Skill Input */
+.skill-input-group {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 4rem;
+}
+
+.skill-input-group input {
+    flex: 1;
+}
+
+.add-skill-btn {
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, var(--neon-cyan), var(--neon-blue));
+    border: none;
+    border-radius: 0.75rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 4px 16px rgba(6, 182, 212, 0.3);
+}
+
+.add-skill-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(6, 182, 212, 0.4);
+}
+
+/* Skills Tags */
+.skills-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    margin-top: 4rem;
+    padding: 3rem;
+    background: rgba(6, 182, 212, 0.05);
+    border: 1px dashed rgba(6, 182, 212, 0.2);
+    border-radius: 1rem;
+    min-height: 100px;
+}
+
+.skill-tag {
+    padding: 0.625rem 1rem;
+    background: rgba(6, 182, 212, 0.1);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    border-radius: 0.625rem;
+    font-size: 0.875rem;
+    color: var(--neon-cyan);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    transition: all 0.3s ease;
+}
+
+.skill-tag:hover {
+    background: rgba(6, 182, 212, 0.15);
+    border-color: rgba(6, 182, 212, 0.5);
+    transform: translateY(-2px);
+}
+
+.remove-skill {
+    background: none;
+    border: none;
+    color: var(--neon-cyan);
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.remove-skill:hover {
+    color: var(--danger);
+    transform: scale(1.2);
+}
+
+/* Submit Button */
+.submit-section {
+    margin-top: 7rem;
+    padding-top: 4rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.btn-cancel {
+    padding: 1.125rem 2rem;
+    background: transparent;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: var(--text-primary);
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 1.125rem;
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-cyan));
+    border: none;
+    border-radius: 0.875rem;
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 1.125rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 24px rgba(59, 130, 246, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.submit-btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 36px rgba(59, 130, 246, 0.5),
+        0 0 48px rgba(59, 130, 246, 0.3);
+}
+
+.submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Status Messages */
+.status-message {
+    padding: 1.25rem;
+    border-radius: 0.875rem;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    font-weight: 500;
+    animation: slideUp 0.3s ease-out;
+}
+
+.status-message.error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+.status-message.success {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+}
+
+.status-message.info {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: var(--neon-blue);
+}
+
+/* Tag Input Container - Space between input and Add button */
+.tag-input-container {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+    margin-bottom: 3rem;
+}
+
+.tag-input-container .form-input {
+    flex: 1;
+}
+
+.tag-input-container .btn {
+    flex-shrink: 0;
+    padding: 1rem 2rem;
+    font-weight: 600;
+}
+
+/* Tags List - Space above tag list */
+.tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 3rem;
+}
+
+.tags-list .tag {
+    padding: 0.75rem 1.25rem;
+    background: rgba(6, 182, 212, 0.1);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    border-radius: 0.625rem;
+    color: var(--neon-cyan);
+    font-weight: 600;
+    font-size: 0.938rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.tags-list .tag:hover {
+    background: rgba(6, 182, 212, 0.15);
+    border-color: rgba(6, 182, 212, 0.5);
+    transform: translateY(-2px);
+}
+
+.tags-list .tag button {
+    background: none;
+    border: none;
+    color: var(--neon-cyan);
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.tags-list .tag button:hover {
+    color: #ef4444;
+    transform: scale(1.2);
+}
+
+/* Form Actions - Bottom buttons */
+.form-actions {
+    margin-top: 7rem;
+    padding-top: 4rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    gap: 3rem;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+/* Task Status */
+.task-status {
+    background: rgba(6, 182, 212, 0.1);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    border-radius: 0.875rem;
+    padding: 1.5rem;
+    margin-top: 2rem;
+}
+
+.task-status h3 {
+    color: var(--neon-cyan);
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+}
+
+.task-status p {
+    color: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .job-create-header h1 {
+        font-size: 2rem;
+    }
+
+    .job-create-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .skill-input-group {
+        flex-direction: column;
+    }
+
+    .add-skill-btn {
+        width: 100%;
+    }
+}
