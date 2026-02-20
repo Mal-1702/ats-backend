@@ -4,9 +4,7 @@ from datetime import datetime
 
 
 class JobCreate(BaseModel):
-    """
-    Used when creating a new job (input from API).
-    """
+    """Used when creating a new job (input from API)."""
     title: str
     skills: List[str]
     keywords: Optional[List[str]] = []
@@ -14,16 +12,14 @@ class JobCreate(BaseModel):
 
 
 class JobOut(BaseModel):
-    """
-    Used when returning job data to client.
-    """
+    """Used when returning job data to client."""
     id: int
     title: str
     skills: List[str]
     keywords: List[str]
     min_experience: int
     created_at: datetime
+    is_active: bool = True
 
     class Config:
         from_attributes = True
-

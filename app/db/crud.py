@@ -1,8 +1,9 @@
 from app.db.dbase import get_db_connection
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from app.models.job import JobCreate
 from app.services.scorer import extract_years_of_experience
 from app.services.resume_parser import parse_resume
+import json
 
 
 def insert_resume(filename: str):
@@ -99,7 +100,8 @@ def get_all_jobs() -> List[Tuple]:
     cursor = conn.cursor()
 
     query = """
-        SELECT id, title, skills, keywords, min_experience, created_at
+        SELECT id, title, skills, keywords, min_experience, created_at,
+               COALESCE(is_active, TRUE) as is_active
         FROM jobs
         ORDER BY created_at DESC;
     """
@@ -113,11 +115,13 @@ def get_all_jobs() -> List[Tuple]:
     return rows
 
 def get_job_by_id(job_id: int):
+    """Fetch a single job by ID."""
     conn = get_db_connection()
     cursor = conn.cursor()
 
     query = """
-        SELECT id, title, skills, keywords, min_experience
+        SELECT id, title, skills, keywords, min_experience, created_at,
+               COALESCE(is_active, TRUE) as is_active
         FROM jobs
         WHERE id = %s;
     """
@@ -211,3 +215,213 @@ def update_resume_parsed_data(resume_id, experience_years, extracted_skills, par
     conn.commit()
     cur.close()
     conn.close()
+
+
+def get_resume_by_id(resume_id: int):
+    """Fetch a single resume by ID."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, filename, uploaded_at, experience_years, extracted_skills, profile_data FROM resumes WHERE id = %s",
+        (resume_id,)
+    )
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return row
+
+
+def delete_resume(resume_id: int) -> Optional[str]:
+    """Delete resume from database. Returns filename or None if not found."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT filename FROM resumes WHERE id = %s", (resume_id,))
+    result = cur.fetchone()
+    if not result:
+        cur.close()
+        conn.close()
+        return None
+    filename = result[0]
+    cur.execute("DELETE FROM rankings WHERE resume_id = %s", (resume_id,))
+    cur.execute("DELETE FROM resumes WHERE id = %s", (resume_id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return filename
+
+
+def update_resume_with_profile(resume_id: int, candidate_profile: dict):
+    """Update resume with full candidate profile."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE resumes
+        SET experience_years = %s,
+            extracted_skills = %s,
+            parsed_text = %s,
+            profile_data = %s,
+            processed_at = CURRENT_TIMESTAMP
+        WHERE id = %s;
+    """, (
+        candidate_profile.get('years_of_experience', 0),
+        candidate_profile.get('skills', []),
+        candidate_profile.get('parsed_text', ''),
+        json.dumps(candidate_profile),
+        resume_id
+    ))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def get_all_resume_profiles_for_job() -> List[dict]:
+    """Get all processed resume profiles."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT profile_data FROM resumes WHERE profile_data IS NOT NULL ORDER BY uploaded_at DESC;")
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    profiles = []
+    for row in rows:
+        if row[0]:
+            try:
+                profiles.append(json.loads(row[0]) if isinstance(row[0], str) else row[0])
+            except Exception:
+                continue
+    return profiles
+
+
+# ============================================
+# JOB STATUS / EDIT / DELETE
+# ============================================
+
+def toggle_job_status(job_id: int, is_active: bool) -> bool:
+    """Update job active status. Returns True if successful."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE jobs SET is_active = %s WHERE id = %s RETURNING id", (is_active, job_id))
+    result = cursor.fetchone()
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return result is not None
+
+
+def delete_job(job_id: int) -> bool:
+    """Delete a job by ID. Returns True if deleted."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM jobs WHERE id = %s RETURNING id", (job_id,))
+    result = cursor.fetchone()
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return result is not None
+
+
+def update_job_skills(job_id: int, skills: list) -> bool:
+    """Update the skills list for a job."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE jobs SET skills = %s WHERE id = %s RETURNING id", (skills, job_id))
+    result = cursor.fetchone()
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return result is not None
+
+
+def update_job_with_profile(job_id: int, job_profile: dict):
+    """Update job with profile from processing pipeline."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE jobs SET profile_data = %s, processed_at = CURRENT_TIMESTAMP WHERE id = %s;",
+        (json.dumps(job_profile), job_id)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+# ============================================
+# USER AUTHENTICATION CRUD
+# ============================================
+
+def create_user(email: str, hashed_password: str, full_name: str = None) -> int:
+    """Create a new user account."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO users (email, hashed_password, full_name) VALUES (%s, %s, %s) RETURNING id;",
+        (email, hashed_password, full_name)
+    )
+    user_id = cursor.fetchone()[0]
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return user_id
+
+
+def get_user_by_email(email: str):
+    """Get user by email."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, email, hashed_password, full_name, is_active, created_at FROM users WHERE email = %s;",
+        (email,)
+    )
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return row
+
+
+def get_user_by_id(user_id: int):
+    """Get user by ID."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, email, hashed_password, full_name, is_active, created_at FROM users WHERE id = %s;",
+        (user_id,)
+    )
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return row
+
+
+# ============================================
+# SUPERVISOR DECISIONS CRUD
+# ============================================
+
+def save_supervisor_decision(job_id: int, supervisor_decision: dict):
+    """Save supervisor decision for a job."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO supervisor_decisions (job_id, decision_data, created_at)
+        VALUES (%s, %s, CURRENT_TIMESTAMP)
+        ON CONFLICT (job_id)
+        DO UPDATE SET decision_data = EXCLUDED.decision_data, created_at = CURRENT_TIMESTAMP;
+    """, (job_id, json.dumps(supervisor_decision)))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def get_supervisor_decision(job_id: int):
+    """Get supervisor decision for a job."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT decision_data, created_at FROM supervisor_decisions WHERE job_id = %s;",
+        (job_id,)
+    )
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    if row:
+        return json.loads(row[0]) if isinstance(row[0], str) else row[0]
+    return None

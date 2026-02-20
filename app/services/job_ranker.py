@@ -13,7 +13,11 @@ def rank_resumes_for_job(job, resumes, uploads_dir="uploads"):
     """
     results = []
 
-    job_id, _, skills, keywords, min_experience = job
+    job_id    = job[0]
+    skills    = job[2]  # list of required skills
+    keywords  = job[3]  # list of keywords (may be None)
+    min_experience = job[4]
+    keywords = keywords or []
 
     for resume_id, filename in resumes:
         path = os.path.join(uploads_dir, filename)

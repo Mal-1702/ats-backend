@@ -39,13 +39,15 @@ export const jobsAPI = {
     getAll: () => api.get('/jobs'),
     getById: (id) => api.get(`/jobs/${id}`),
     toggleStatus: (jobId, isActive) => api.patch(`/jobs/${jobId}/status`, null, { params: { is_active: isActive } }),
+    delete: (jobId) => api.delete(`/jobs/${jobId}`),
+    updateSkills: (jobId, skills) => api.patch(`/jobs/${jobId}/skills`, { skills }),
 };
 
 export const uploadAPI = {
     uploadResume: (file) => {
         const formData = new FormData();
         formData.append('file', file);
-        return api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        return api.post('/upload-resume', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
     },
     getTaskStatus: (taskId) => api.get(`/task-status/${taskId}`),
 };
@@ -71,7 +73,7 @@ export const resumeAnalysisAPI = {
         const formData = new FormData();
         formData.append('file', file);
         return api.post('/resume-analysis/upload', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+            headers: { 'Content-Type': 'multipart/form-data' },
         });
     },
     chat: (sessionId, message) => api.post(`/resume-analysis/chat/${sessionId}`, { message }),
