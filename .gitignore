@@ -1,0 +1,53 @@
+# Environment & Secrets — NEVER commit these
+.env
+.env.*
+*.env
+
+# Python virtual environment
+venv/
+env/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Build / dist
+build/
+dist/
+*.egg-info/
+
+# Test & coverage
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Uploads (local user data)
+uploads/
+
+# Node
+frontend/node_modules/
+
+# Temp files
+*.tmp
+check_*.py
+verify_*.py
+schema_out.txt
