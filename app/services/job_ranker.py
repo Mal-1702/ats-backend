@@ -231,13 +231,38 @@ def rank_resumes_for_job(
     keywords       = job[3]  if len(job) > 3 else []
     min_experience = job[4]  if len(job) > 4 else 0
 
+    # Row index 7 = skill_priorities JSONB (added by migration)
+    raw_priorities = job[7] if len(job) > 7 else None
+
     skills   = skills   or []
     keywords = keywords or []
 
+    # Build a flat { skill_lower: priority_float } map for the scorer
+    skill_priorities_map: dict = {}
+    if raw_priorities:
+        try:
+            import json as _json
+            priority_list = (
+                raw_priorities
+                if isinstance(raw_priorities, list)
+                else _json.loads(raw_priorities)
+                if isinstance(raw_priorities, str)
+                else []
+            )
+            for entry in priority_list:
+                if isinstance(entry, dict):
+                    skill_key = str(entry.get("skill", "")).strip().lower()
+                    p_val     = float(entry.get("priority", 0.5))
+                    if skill_key:
+                        skill_priorities_map[skill_key] = p_val
+        except Exception as _e:
+            logger.warning("Could not parse skill_priorities: %s", _e)
+
     job_payload = {
-        "skills":         skills,
-        "keywords":       keywords,
-        "min_experience": float(min_experience or 0),
+        "skills":           skills,
+        "keywords":         keywords,
+        "min_experience":   float(min_experience or 0),
+        "skill_priorities": skill_priorities_map,  # Phase 16 data
     }
 
     results: List[dict] = []

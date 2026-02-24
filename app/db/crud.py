@@ -59,75 +59,114 @@ def get_all_resumes():
     return rows
 
 
+def _ensure_skill_priorities_column(cursor) -> bool:
+    """Ensure the skill_priorities JSONB column exists on the jobs table."""
+    try:
+        cursor.execute("""
+            ALTER TABLE jobs
+            ADD COLUMN IF NOT EXISTS skill_priorities JSONB DEFAULT NULL;
+        """)
+        return True
+    except Exception:
+        return False
+
+
 def insert_job(job: JobCreate) -> int:
     """
     Insert a new job into the database.
+    Stores skill_priorities as JSONB when provided.
     Returns the created job ID.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    query = """
-        INSERT INTO jobs (title, skills, keywords, min_experience)
-        VALUES (%s, %s, %s, %s)
-        RETURNING id;
-    """
+    _ensure_skill_priorities_column(cursor)
 
-    cursor.execute(
-        query,
-        (
-            job.title,
-            job.skills,
-            job.keywords,
-            job.min_experience
+    # Serialise skill_priorities to a JSON list if provided
+    skill_priorities_json = None
+    if job.skill_priorities:
+        skill_priorities_json = json.dumps(
+            [sp.model_dump() for sp in job.skill_priorities]
         )
-    )
+
+    try:
+        query = """
+            INSERT INTO jobs (title, skills, keywords, min_experience, skill_priorities)
+            VALUES (%s, %s, %s, %s, %s::jsonb)
+            RETURNING id;
+        """
+        cursor.execute(
+            query,
+            (
+                job.title,
+                job.skills,
+                job.keywords,
+                job.min_experience,
+                skill_priorities_json,
+            )
+        )
+    except Exception:
+        # Fallback for DBs that don't have the column yet
+        conn.rollback()
+        query = """
+            INSERT INTO jobs (title, skills, keywords, min_experience)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id;
+        """
+        cursor.execute(query, (job.title, job.skills, job.keywords, job.min_experience))
 
     job_id = cursor.fetchone()[0]
     conn.commit()
-
     cursor.close()
     conn.close()
-
     return job_id
 
 
 def get_all_jobs() -> List[Tuple]:
-    """
-    Fetch all jobs from the database.
-    """
+    """Fetch all jobs from the database (includes skill_priorities if present)."""
     conn = get_db_connection()
     cursor = conn.cursor()
-
-    query = """
-        SELECT id, title, skills, keywords, min_experience, created_at,
-               COALESCE(is_active, TRUE) as is_active
-        FROM jobs
-        ORDER BY created_at DESC;
-    """
-
-    cursor.execute(query)
+    try:
+        cursor.execute("""
+            SELECT id, title, skills, keywords, min_experience, created_at,
+                   COALESCE(is_active, TRUE) as is_active,
+                   skill_priorities
+            FROM jobs
+            ORDER BY created_at DESC;
+        """)
+    except Exception:
+        conn.rollback()
+        cursor.execute("""
+            SELECT id, title, skills, keywords, min_experience, created_at,
+                   COALESCE(is_active, TRUE) as is_active
+            FROM jobs
+            ORDER BY created_at DESC;
+        """)
     rows = cursor.fetchall()
-
     cursor.close()
     conn.close()
-
     return rows
 
+
 def get_job_by_id(job_id: int):
-    """Fetch a single job by ID."""
+    """Fetch a single job by ID (includes skill_priorities if present)."""
     conn = get_db_connection()
     cursor = conn.cursor()
-
-    query = """
-        SELECT id, title, skills, keywords, min_experience, created_at,
-               COALESCE(is_active, TRUE) as is_active
-        FROM jobs
-        WHERE id = %s;
-    """
-    cursor.execute(query, (job_id,))
+    try:
+        cursor.execute("""
+            SELECT id, title, skills, keywords, min_experience, created_at,
+                   COALESCE(is_active, TRUE) as is_active,
+                   skill_priorities
+            FROM jobs WHERE id = %s;
+        """, (job_id,))
+    except Exception:
+        conn.rollback()
+        cursor.execute("""
+            SELECT id, title, skills, keywords, min_experience, created_at,
+                   COALESCE(is_active, TRUE) as is_active
+            FROM jobs WHERE id = %s;
+        """, (job_id,))
     row = cursor.fetchone()
-
     cursor.close()
     conn.close()
     return row

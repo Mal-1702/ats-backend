@@ -1033,9 +1033,18 @@ def generate_insights(
 # MAIN SCORING FUNCTION
 # ===========================================================================
 
+def _priority_float_to_tier(p: float) -> str:
+    """Convert a 0–1 recruiter-set priority to the internal tier label."""
+    if p >= 0.90: return "critical"
+    if p >= 0.65: return "important"
+    if p >= 0.40: return "important"
+    if p >= 0.20: return "optional"
+    return "optional"
+
+
 def score_resume(resume_text: str, job: Dict, job_title: str = "") -> Dict:
     """
-    ATS Scoring Engine v4 -- All 15 phases.
+    ATS Scoring Engine v4 -- All 15 phases + Phase 16: recruiter skill priorities.
 
     Weights (Phase 11)
     ------------------
@@ -1045,20 +1054,40 @@ def score_resume(resume_text: str, job: Dict, job_title: str = "") -> Dict:
     Role Alignment:                                          10%
     Education:                                                5%
 
-    Post-aggregation: non-linear adjustments (Phase 12).
+    Phase 16  Recruiter Priority Override
+    --------------------------------------
+    If the job payload includes skill_priorities (a dict of
+    { skill_name_lower: priority_float }), those values override
+    the auto-detected importance tier for each skill.
+    This makes the skill scoring directly driven by recruiter intent.
     """
     required_skills: List[str] = job.get("skills", []) or []
     keywords: List[str]        = job.get("keywords") or []
     required_years: float      = float(job.get("min_experience") or 0)
+    # Phase 16: recruiter-set priority map  { skill_lower: float 0-1 }
+    recruiter_priorities: Dict[str, float] = job.get("skill_priorities") or {}
 
     # Derive keywords if none provided
     if not keywords:
         title_words = [w for w in job_title.lower().split() if len(w) > 3]
         keywords    = required_skills + title_words
 
-    # -- Phase 1: Role detection + skill importance classification --
-    role_type          = detect_role_type(job_title, keywords, required_skills)
-    skill_importance   = classify_job_skills(required_skills, role_type)
+    # -- Phase 1: Role detection + auto skill importance classification --
+    role_type        = detect_role_type(job_title, keywords, required_skills)
+    skill_importance = classify_job_skills(required_skills, role_type)
+
+    # -- Phase 16: Merge recruiter priorities (override auto-detection) --
+    if recruiter_priorities:
+        for skill_key, priority_val in recruiter_priorities.items():
+            tier = _priority_float_to_tier(float(priority_val))
+            if skill_key in skill_importance:
+                skill_importance[skill_key] = tier
+            else:
+                norm_key = normalize_skill(skill_key)
+                for skey in list(skill_importance.keys()):
+                    if normalize_skill(skey) == norm_key:
+                        skill_importance[skey] = tier
+                        break
 
     # -- Phase 6: Extract experience --
     candidate_years = extract_years_of_experience(resume_text)
