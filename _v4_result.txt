@@ -1,0 +1,18 @@
+﻿=== Import: OK ===
+
+[PASS] T1 bare-2025: 0.0 yrs (expect 0.0)
+[PASS] T2 date-range: 10.7 yrs (expect 8-13)
+[PASS] T3 tech-family: kafka<->rabbitmq = True (expect True)
+[PASS] T4a skill-tier Python=critical (expect critical)
+[PASS] T4b skill-tier Jira=important (expect optional/important)
+
+[PASS] T5 SENIOR score: 81/100 (expect >= 80)
+   Skill:92%(cov=92.5%) | Exp:94%(10.1yrs) | Seniority:81% | Role:70% | Proj:26% | Edu:75% | Base:73 -> Final:81/100 | Rec:Strong Hire
+   Matched: ['Python', 'Django', 'PostgreSQL', 'Docker', 'AWS', 'Node.js (equivalent)', 'Redis', 'Kafka', 'Kubernetes']
+   Rec: Strong Hire
+
+[PASS] T6 WEAK score: 0/100 (expect < 60)
+   Skill:0%(cov=0.0%) | Exp:4%(0.5yrs) | Seniority:0% | Role:19% | Proj:6% | Edu:75% | Base:8 -> Final:0/100 | Rec:Not Recommended
+
+[PASS] T7 INFERENCE: Python inferred from Django = True
+   Score: 52/100 | Matched: ['Python (inferred)', 'Django', 'Redis', 'Docker']

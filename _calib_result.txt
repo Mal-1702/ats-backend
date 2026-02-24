@@ -1,0 +1,18 @@
+﻿=== Imports: OK ===
+
+Individual Senior Staff: 78/100
+Individual Senior Dev: 46/100
+Individual Mid Dev: 30/100
+Individual Frontend Intern: 0/100
+
+=== Calibrated Pool Scores ===
+  Senior Staff        : raw= 78 -> calibrated= 88 | Top Candidate             | core_fit        | Strong Hire ù Prioritise Interview
+  Senior Dev          : raw= 46 -> calibrated= 64 | Strong Candidate          | adjacent_fit    | Hire ù Schedule Interview
+  Mid Dev             : raw= 30 -> calibrated= 46 | Below Average             | adjacent_fit    | Low Priority ù Only if Pool is Thin
+  Frontend Intern     : raw=  0 -> calibrated= 22 | Weak Candidate            | irrelevant      | Not Recommended
+
+[PASS] Top (Senior Staff) >= 80: 88
+[PASS] Weak (Frontend Intern) < 60: 22
+[PASS] Order preserved: Staff > Senior > Mid
+[PASS] No order inversions in calibrated list
+[PASS] Top score capped at 95: 88

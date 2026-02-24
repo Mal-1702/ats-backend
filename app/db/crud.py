@@ -149,34 +149,54 @@ def get_all_resume_files():
     return rows
 
 
-def upsert_ranking(job_id: int, resume_id: int, score: int):
-    '''
-    ranking resumes based on scores and keywords
-    
-    :param job_id: Description
-    :type job_id: int
-    :param resume_id: Description
-    :type resume_id: int
-    :param score: Description
-    :type score: int
-    '''
+def upsert_ranking(job_id: int, resume_id: int, score: int,
+                   breakdown: dict = None, insights: dict = None):
+    """
+    Upsert a ranking record with optional JSON breakdown and insights.
+    Uses column-based ON CONFLICT to avoid dependency on a specific constraint name.
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    query = """
-        INSERT INTO rankings (job_id, resume_id, score)
-        VALUES (%s, %s, %s)
-        ON CONFLICT (job_id, resume_id)
-        DO UPDATE SET score = EXCLUDED.score, created_at = CURRENT_TIMESTAMP;
-    """
+    # Try with breakdown/insights columns first
+    try:
+        query = """
+            INSERT INTO rankings (job_id, resume_id, score, breakdown, insights)
+            VALUES (%s, %s, %s, %s::jsonb, %s::jsonb)
+            ON CONFLICT (job_id, resume_id)
+            DO UPDATE SET
+                score      = EXCLUDED.score,
+                breakdown  = EXCLUDED.breakdown,
+                insights   = EXCLUDED.insights,
+                created_at = CURRENT_TIMESTAMP;
+        """
+        cursor.execute(
+            query,
+            (
+                job_id,
+                resume_id,
+                score,
+                json.dumps(breakdown) if breakdown else None,
+                json.dumps(insights)  if insights  else None,
+            )
+        )
+    except Exception:
+        # Fallback: store just the score if new columns aren't available
+        conn.rollback()
+        query_basic = """
+            INSERT INTO rankings (job_id, resume_id, score)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (job_id, resume_id)
+            DO UPDATE SET score = EXCLUDED.score, created_at = CURRENT_TIMESTAMP;
+        """
+        cursor.execute(query_basic, (job_id, resume_id, score))
 
-    cursor.execute(query, (job_id, resume_id, score))
     conn.commit()
-
     cursor.close()
     conn.close()
 
 def get_rankings_for_job(job_id: int):
+    """Retrieve all rankings for a job, ordered by score descending."""
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -185,7 +205,9 @@ def get_rankings_for_job(job_id: int):
             r.resume_id,
             res.filename,
             r.score,
-            r.created_at
+            r.created_at,
+            r.breakdown,
+            r.insights
         FROM rankings r
         JOIN resumes res ON r.resume_id = res.id
         WHERE r.job_id = %s
@@ -194,11 +216,10 @@ def get_rankings_for_job(job_id: int):
 
     cursor.execute(query, (job_id,))
     rows = cursor.fetchall()
-
     cursor.close()
     conn.close()
-
     return rows
+
 
 def update_resume_parsed_data(resume_id, experience_years, extracted_skills, parsed_text):
     conn = get_db_connection()

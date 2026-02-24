@@ -1,0 +1,53 @@
+﻿venv\Scripts\python.e
+xe : Traceback (most 
+recent call last):
+At line:1 char:1
++ venv\Scripts\python
+.exe 
+_syntax_check.py 
+2>&1 | Out-File 
+-Encoding ut ...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (Traceba   
+ ck (most recent     
+call last)::Stri    
+ng) [], RemoteEx    
+ception
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+  File "C:\Users\Malh
+a\OneDrive\Desktop\at
+s-backend-ai\_syntax_
+check.py", line 3, 
+in <module>
+    src = open('app/s
+ervices/scorer.py').r
+ead()
+  File "C:\Program Fi
+les\WindowsApps\Pytho
+nSoftwareFoundation.P
+ython.3.13_3.13.3312.
+0_x64__qbz5n2kfra8p0\
+Lib\encodings\cp1252.
+py", line 23, in 
+decode
+    return codecs.cha
+rmap_decode(input,sel
+f.errors,decoding_tab
+le)[0]
+           ~~~~~~~~~~
+~~~~~~~~~~~^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+^^^
+UnicodeDecodeError: 
+'charmap' codec 
+can't decode byte 
+0x90 in position 
+1616: character maps 
+to <undefined>

@@ -13,7 +13,21 @@ const RankedCandidates = () => {
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
     const [error, setError] = useState('');
+    // Per-card expand state: Set of resume_ids that are currently expanded
+    const [expandedIds, setExpandedIds] = useState(new Set());
     const navigate = useNavigate();
+
+    const toggleExpanded = (resumeId) => {
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(resumeId)) {
+                next.delete(resumeId);
+            } else {
+                next.add(resumeId);
+            }
+            return next;
+        });
+    };
 
     useEffect(() => {
         fetchJobAndRankings();
@@ -171,7 +185,13 @@ const RankedCandidates = () => {
                                 <div className="candidates-list">
                                     <h2>Shortlisted Candidates</h2>
                                     {rankings.shortlist.map((candidate, index) => (
-                                        <CandidateCard key={index} candidate={candidate} rank={index + 1} />
+                                        <CandidateCard
+                                            key={candidate.resume_id ?? index}
+                                            candidate={candidate}
+                                            rank={index + 1}
+                                            isExpanded={expandedIds.has(candidate.resume_id)}
+                                            onToggle={() => toggleExpanded(candidate.resume_id)}
+                                        />
                                     ))}
                                 </div>
                             </>

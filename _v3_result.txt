@@ -1,0 +1,10 @@
+﻿Import OK
+Bare-year test: 0.0 (expect 0.0) PASS=True
+Date-range test: 7.7 (expect 5-8)
+node.js synonym: True (expect True)
+postgres synonym: True (expect True)
+
+Senior candidate score: 76/100 (expect 75+)
+  Matched: ['Django', 'PostgreSQL', 'Docker', 'Redis', 'Python (inferred)']
+  Exp yrs: 8.1
+  Skill:82% (5/6) | Exp:92% (8.1yrs) | Seniority:76% | Role:70% | Proj:29% | Edu:75% | Final:76/100 | Rec:Moderate Hire
