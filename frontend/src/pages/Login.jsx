@@ -24,12 +24,13 @@ const Login = () => {
         setError('');
         setLoading(true);
 
+        const normalizedEmail = formData.email.trim().toLowerCase();
         try {
             let result;
             if (isLogin) {
-                result = await login(formData.email, formData.password);
+                result = await login(normalizedEmail, formData.password);
             } else {
-                result = await register(formData.email, formData.password, formData.fullName);
+                result = await register(normalizedEmail, formData.password, formData.fullName);
             }
 
             if (result.success) {

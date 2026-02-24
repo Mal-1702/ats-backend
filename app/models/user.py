@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 from datetime import datetime
 
@@ -8,10 +8,24 @@ class UserRegister(BaseModel):
     password: str
     full_name: Optional[str] = None
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v):
+        if isinstance(v, str):
+            return v.strip().lower()
+        return v
+
 
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v):
+        if isinstance(v, str):
+            return v.strip().lower()
+        return v
 
 
 class UserOut(BaseModel):

@@ -415,7 +415,7 @@ def create_user(email: str, hashed_password: str, full_name: str = None) -> int:
     cursor = conn.cursor()
     cursor.execute(
         "INSERT INTO users (email, hashed_password, full_name) VALUES (%s, %s, %s) RETURNING id;",
-        (email, hashed_password, full_name)
+        (email.strip().lower(), hashed_password, full_name)
     )
     user_id = cursor.fetchone()[0]
     conn.commit()
@@ -430,7 +430,7 @@ def get_user_by_email(email: str):
     cursor = conn.cursor()
     cursor.execute(
         "SELECT id, email, hashed_password, full_name, is_active, created_at FROM users WHERE email = %s;",
-        (email,)
+        (email.strip().lower(),)
     )
     row = cursor.fetchone()
     cursor.close()
