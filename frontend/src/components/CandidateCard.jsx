@@ -10,11 +10,34 @@ import './CandidateCard.css';
  *   isExpanded (boolean)  — current expanded state
  *   onToggle   (function) — called when button is clicked
  */
-const CandidateCard = ({ candidate, rank, isExpanded, onToggle }) => {
+const CandidateCard = ({ candidate, rank, isExpanded, onToggle, skillPriorities }) => {
 
     const getTierColor = t => ({ A: 'tier-a', B: 'tier-b', C: 'tier-c', D: 'tier-d' }[t] || 'tier-default');
     const getScoreColor = s => s >= 80 ? 'score-excellent' : s >= 60 ? 'score-good' : s >= 40 ? 'score-fair' : 'score-poor';
     const recClass = r => 'rec-' + (r || '').toLowerCase().replace(/[\s/]+/g, '-');
+
+    // Create a priority map for quick lookup: { skill_name_lower: { priority, level } }
+    const priorityMap = {};
+    if (Array.isArray(skillPriorities)) {
+        skillPriorities.forEach(sp => {
+            if (sp && sp.skill) {
+                priorityMap[sp.skill.toLowerCase().trim()] = {
+                    priority: sp.priority,
+                    level: sp.importance_level || 'high'
+                };
+            }
+        });
+    }
+
+    const getPriorityLabel = (skill) => {
+        const entry = priorityMap[skill.toLowerCase().trim()];
+        if (!entry) return null;
+        if (entry.priority >= 0.9) return { label: 'CRITICAL', class: 'p-critical' };
+        if (entry.priority >= 0.65) return { label: 'HIGH', class: 'p-high' };
+        if (entry.priority >= 0.40) return { label: 'MEDIUM', class: 'p-medium' };
+        if (entry.priority >= 0.20) return { label: 'LOW', class: 'p-low' };
+        return { label: 'OPTIONAL', class: 'p-optional' };
+    };
 
     // Safe data access
     const matched = Array.isArray(candidate.matched_skills) ? candidate.matched_skills : [];
@@ -159,7 +182,15 @@ const CandidateCard = ({ candidate, rank, isExpanded, onToggle }) => {
                                             <CheckCircle size={12} /> Matched ({matched.length})
                                         </div>
                                         <div className="skill-chips">
-                                            {matched.map((s, i) => <span key={i} className="chip chip-matched">{s}</span>)}
+                                            {matched.map((s, i) => {
+                                                const p = getPriorityLabel(s);
+                                                return (
+                                                    <span key={i} className={`chip chip-matched ${p?.class || ''}`}>
+                                                        {s}
+                                                        {p && <span className="priority-mini-tag">{p.label}</span>}
+                                                    </span>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 )}
@@ -169,7 +200,15 @@ const CandidateCard = ({ candidate, rank, isExpanded, onToggle }) => {
                                             <XCircle size={12} /> Missing ({missing.length})
                                         </div>
                                         <div className="skill-chips">
-                                            {missing.map((s, i) => <span key={i} className="chip chip-missing">{s}</span>)}
+                                            {missing.map((s, i) => {
+                                                const p = getPriorityLabel(s);
+                                                return (
+                                                    <span key={i} className={`chip chip-missing ${p?.class || ''}`}>
+                                                        {s}
+                                                        {p && <span className="priority-mini-tag">{p.label}</span>}
+                                                    </span>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 )}

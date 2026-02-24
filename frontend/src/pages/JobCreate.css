@@ -418,3 +418,243 @@
         width: 100%;
     }
 }
+
+/* ── Priority Slider Specific Styles ────────────────────────────────────── */
+
+.form-label-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.form-label-optional {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.2);
+    text-transform: none;
+    font-weight: 400;
+}
+
+/* Stats above the grid */
+.priority-stats {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding: 0.75rem 1.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 2rem;
+    width: fit-content;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pstat {
+    font-size: 0.813rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pstat::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.pstat.critical::before {
+    background: #ef4444;
+}
+
+.pstat.high::before {
+    background: #f97316;
+}
+
+.pstat.optional::before {
+    background: #6b7280;
+}
+
+.pstat.total::before {
+    background: var(--neon-cyan);
+}
+
+/* Grid Layout */
+.skills-priority-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+/* Individual Skill Card */
+.skill-priority-card {
+    padding: 1.5rem;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.skill-priority-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+}
+
+.skill-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.skill-card-name {
+    font-weight: 700;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.skill-card-remove {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: var(--text-secondary);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.skill-card-remove:hover {
+    background: #ef4444;
+    color: white;
+}
+
+/* Priority Bar Visualization */
+.priority-bar-track {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    width: 100%;
+    margin-top: -0.5rem;
+}
+
+.priority-bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.4s ease, background-color 0.4s ease;
+}
+
+/* Custom Range Slider */
+.priority-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: transparent;
+    cursor: pointer;
+    margin: 0.5rem 0;
+}
+
+.priority-slider:focus {
+    outline: none;
+}
+
+.priority-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 18px;
+    width: 18px;
+    border-radius: 50%;
+    background: var(--thumb-color, var(--neon-cyan));
+    cursor: pointer;
+    margin-top: -7px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    border: 2px solid white;
+}
+
+.priority-slider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    cursor: pointer;
+    background: var(--track-color, rgba(255, 255, 255, 0.1));
+    border-radius: 10px;
+}
+
+/* Priority Chips */
+.priority-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.priority-chip {
+    padding: 0.4rem 0.75rem;
+    border-radius: 2rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.priority-chip:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.priority-chip.active {
+    transform: scale(1.05);
+}
+
+.priority-label {
+    font-size: 0.813rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: right;
+}
+
+/* Empty Hint */
+.skills-empty-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 3rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 2px dashed rgba(255, 255, 255, 0.05);
+    border-radius: 1.5rem;
+    color: var(--text-secondary);
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.form-error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 2rem;
+    font-weight: 500;
+}
+
+@media (max-width: 600px) {
+    .skills-priority-grid {
+        grid-template-columns: 1fr;
+    }
+}

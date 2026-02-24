@@ -189,10 +189,12 @@ const RankedCandidates = () => {
                                             key={candidate.resume_id ?? index}
                                             candidate={candidate}
                                             rank={index + 1}
+                                            skillPriorities={job?.skill_priorities}
                                             isExpanded={expandedIds.has(candidate.resume_id)}
                                             onToggle={() => toggleExpanded(candidate.resume_id)}
                                         />
                                     ))}
+
                                 </div>
                             </>
                         )}

@@ -282,7 +282,7 @@ def get_resume_by_id(resume_id: int):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id, filename, uploaded_at, experience_years, extracted_skills, profile_data FROM resumes WHERE id = %s",
+        "SELECT id, filename, uploaded_at, experience_years, extracted_skills, profile_data, parsed_text FROM resumes WHERE id = %s",
         (resume_id,)
     )
     row = cursor.fetchone()

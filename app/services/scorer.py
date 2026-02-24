@@ -1030,8 +1030,6 @@ def generate_insights(
 
 
 # ===========================================================================
-# MAIN SCORING FUNCTION
-# ===========================================================================
 
 def _priority_float_to_tier(p: float) -> str:
     """Convert a 0–1 recruiter-set priority to the internal tier label."""
@@ -1083,6 +1081,7 @@ def score_resume(resume_text: str, job: Dict, job_title: str = "") -> Dict:
             if skill_key in skill_importance:
                 skill_importance[skill_key] = tier
             else:
+                from app.services.scorer import normalize_skill
                 norm_key = normalize_skill(skill_key)
                 for skey in list(skill_importance.keys()):
                     if normalize_skill(skey) == norm_key:
