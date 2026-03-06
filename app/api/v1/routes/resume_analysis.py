@@ -1,4 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Body
+from fastapi.responses import StreamingResponse
+import json
 from typing import List, Optional
 import uuid
 import os
@@ -126,6 +128,40 @@ async def chat_with_resume(
     
     # Update history
     history.append({"user": request.message, "ai": response})
-    session["history"] = history
     
     return {"response": response}
+
+@router.post("/chat-stream/{session_id}")
+async def chat_with_resume_stream(
+    session_id: str,
+    request: ChatRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Streaming chat about an uploaded resume in the current session."""
+    session = session_cache.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session expired or not found")
+    
+    resume_text = session["resume_text"]
+    history = session["history"]
+    
+    system_prompt = f"You are an expert career consultant and ATS analyzer. You are helping a candidate improve their resume. \n\nRESUME CONTENT:\n{resume_text[:4000]}\n\nPREVIOUS CONTEXT:\n{str(history[-5:]) if history else 'First message.'}"
+    
+    def event_generator():
+        full_response = ""
+        try:
+            for token in llm_service.get_streaming_chat_response(system_prompt, request.message):
+                full_response += token
+                # Format as SSE
+                yield f"data: {json.dumps({'token': token})}\n\n"
+            
+            # Update history after full completion
+            history.append({"user": request.message, "ai": full_response})
+            session["history"] = history
+            
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")

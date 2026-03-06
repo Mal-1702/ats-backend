@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Query
 from fastapi.responses import FileResponse
-from app.db.crud import get_all_resumes, delete_resume, get_resume_by_id
+from app.db.crud import get_all_resumes, delete_resume, get_resume_by_id, get_unique_skills
 from app.models.resume import ResumeOut
+from typing import List, Optional
 from app.core.security import get_current_user
 from app.core.config import get_settings
 import os
@@ -10,9 +11,22 @@ router = APIRouter()
 
 
 @router.get("/resumes", response_model=list[ResumeOut], tags=["Resume"])
-def list_resumes(current_user: dict = Depends(get_current_user)):
-    """List all uploaded resumes. Requires authentication."""
-    rows = get_all_resumes()
+def list_resumes(
+    search: Optional[str] = None,
+    skills: Optional[List[str]] = Query(None),
+    min_exp: Optional[float] = None,
+    max_exp: Optional[float] = None,
+    keywords: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """List resumes with optional advanced filtering. Requires authentication."""
+    rows = get_all_resumes(
+        search_query=search,
+        skills=skills,
+        min_experience=min_exp,
+        max_experience=max_exp,
+        keywords=keywords
+    )
 
     return [
         ResumeOut(
@@ -24,6 +38,12 @@ def list_resumes(current_user: dict = Depends(get_current_user)):
         )
         for row in rows
     ]
+
+
+@router.get("/resumes/skills", response_model=List[str], tags=["Resume"])
+def list_unique_skills(current_user: dict = Depends(get_current_user)):
+    """Get a unique list of all skills found in resumes. Requires authentication."""
+    return get_unique_skills()
 
 
 @router.delete("/resumes/{resume_id}", tags=["Resume"])

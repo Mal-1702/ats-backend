@@ -34,29 +34,105 @@ def insert_resume(filename: str):
 
     return resume_id
 
-def get_all_resumes():
+def get_all_resumes(
+    search_query: Optional[str] = None,
+    skills: Optional[List[str]] = None,
+    min_experience: Optional[float] = None,
+    max_experience: Optional[float] = None,
+    keywords: Optional[str] = None
+):
     """
-    Fetch all uploaded resumes from the database.
+    Fetch resumes with advanced filtering and search relevance ranking.
     """
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("""
-        SELECT id,
-               filename,
-               uploaded_at,
-               experience_years,
-               extracted_skills
-        FROM resumes
-        ORDER BY uploaded_at DESC
-    """)
+    # Build the base query with dynamic ranking
+    base_query = """
+        SELECT id, filename, uploaded_at, experience_years, extracted_skills
+    """
+    
+    # Ranking logic
+    ranking_parts = ["0"]
+    params = []
+    
+    if search_query:
+        # Boost for filename match
+        ranking_parts.append("(CASE WHEN filename ILIKE %s THEN 10 ELSE 0 END)")
+        params.append(f"%{search_query}%")
+        # Boost for name/role in parsed_text (if we had specific columns, otherwise we scan text)
+        ranking_parts.append("(CASE WHEN parsed_text ILIKE %s THEN 5 ELSE 0 END)")
+        params.append(f"%{search_query}%")
 
+    if skills:
+        # Boost for skill matches
+        for skill in skills:
+            ranking_parts.append("(CASE WHEN %s = ANY(extracted_skills) THEN 8 ELSE 0 END)")
+            params.append(skill)
+
+    if keywords:
+        ranking_parts.append("(CASE WHEN parsed_text ILIKE %s THEN 3 ELSE 0 END)")
+        params.append(f"%{keywords}%")
+
+    relevance_score = " + ".join(ranking_parts)
+    
+    query = f"{base_query}, ({relevance_score}) as relevance FROM resumes"
+    where_clauses = []
+
+    if search_query:
+        where_clauses.append("(filename ILIKE %s OR parsed_text ILIKE %s)")
+        params.extend([f"%{search_query}%", f"%{search_query}%"])
+    
+    if skills:
+        # Filter for resumes containing ALL selected skills (as requested in Feature 4)
+        where_clauses.append("extracted_skills @> %s")
+        params.append(skills)
+
+    if min_experience is not None:
+        where_clauses.append("experience_years >= %s")
+        params.append(min_experience)
+    
+    if max_experience is not None:
+        where_clauses.append("experience_years <= %s")
+        params.append(max_experience)
+
+    if keywords:
+        where_clauses.append("parsed_text ILIKE %s")
+        params.append(f"%{keywords}%")
+
+    if where_clauses:
+        query += " WHERE " + " AND ".join(where_clauses)
+
+    query += " ORDER BY relevance DESC, uploaded_at DESC"
+
+    cur.execute(query, tuple(params))
     rows = cur.fetchall()
 
     cur.close()
     conn.close()
 
     return rows
+
+
+def get_unique_skills() -> List[str]:
+    """
+    Extract a unique list of all skills detected across all resumes.
+    """
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT DISTINCT unnest(extracted_skills) as skill
+        FROM resumes
+        WHERE extracted_skills IS NOT NULL
+        ORDER BY skill ASC;
+    """)
+    
+    skills = [row[0] for row in cur.fetchall() if row[0]]
+
+    cur.close()
+    conn.close()
+    return skills
 
 
 def _ensure_skill_priorities_column(cursor) -> bool:
@@ -229,6 +305,13 @@ def upsert_ranking(job_id: int, resume_id: int, score: int,
             DO UPDATE SET score = EXCLUDED.score, created_at = CURRENT_TIMESTAMP;
         """
         cursor.execute(query_basic, (job_id, resume_id, score))
+
+    # --- Lifecycle update: ensure job_resumes association exists ---
+    cursor.execute("""
+        INSERT INTO job_resumes (job_id, resume_id, status)
+        VALUES (%s, %s, 'active')
+        ON CONFLICT (job_id, resume_id) DO NOTHING;
+    """, (job_id, resume_id))
 
     conn.commit()
     cursor.close()
@@ -453,35 +536,120 @@ def get_user_by_id(user_id: int):
 
 
 # ============================================
-# SUPERVISOR DECISIONS CRUD
+# DATA LIFECYCLE & CLEANUP
 # ============================================
 
-def save_supervisor_decision(job_id: int, supervisor_decision: dict):
-    """Save supervisor decision for a job."""
+def close_job(job_id: int, reason: str = "Job filled/closed"):
+    """Mark job as closed and archive associated resumes."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO supervisor_decisions (job_id, decision_data, created_at)
-        VALUES (%s, %s, CURRENT_TIMESTAMP)
-        ON CONFLICT (job_id)
-        DO UPDATE SET decision_data = EXCLUDED.decision_data, created_at = CURRENT_TIMESTAMP;
-    """, (job_id, json.dumps(supervisor_decision)))
+    try:
+        # 1. Update job status
+        cursor.execute("""
+            UPDATE jobs 
+            SET is_active = FALSE, closed_at = CURRENT_TIMESTAMP 
+            WHERE id = %s RETURNING id;
+        """, (job_id,))
+        if not cursor.fetchone():
+            return False
+            
+        # 2. Archive associated resumes
+        cursor.execute("""
+            UPDATE job_resumes 
+            SET status = 'archived' 
+            WHERE job_id = %s;
+        """, (job_id,))
+        
+        # 3. Log event
+        cursor.execute("""
+            INSERT INTO audit_logs (target_type, target_id, action, reason)
+            VALUES ('job', %s, 'closed', %s);
+        """, (job_id, reason))
+        
+        conn.commit()
+        return True
+    except Exception:
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def reopen_job(job_id: int):
+    """Reactivate a closed job and its associated resumes."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE jobs 
+            SET is_active = TRUE, closed_at = NULL 
+            WHERE id = %s RETURNING id;
+        """, (job_id,))
+        if not cursor.fetchone():
+            return False
+            
+        cursor.execute("UPDATE job_resumes SET status = 'active' WHERE job_id = %s;", (job_id,))
+        cursor.execute("INSERT INTO audit_logs (target_type, target_id, action) VALUES ('job', %s, 'reopened');", (job_id,))
+        
+        conn.commit()
+        return True
+    except Exception:
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def toggle_resume_protection(resume_id: int, is_protected: bool):
+    """Set protection status for a resume."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE resumes SET is_protected = %s WHERE id = %s RETURNING id;", (is_protected, resume_id))
+    result = cursor.fetchone()
     conn.commit()
     cursor.close()
     conn.close()
+    return result is not None
 
-
-def get_supervisor_decision(job_id: int):
-    """Get supervisor decision for a job."""
+def get_stale_resumes_for_cleanup(retention_days: int):
+    """
+    Find resumes eligible for deletion:
+    - Associated with closed jobs for > inheritance days
+    - NOT associated with any active job
+    - NOT protected
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT decision_data, created_at FROM supervisor_decisions WHERE job_id = %s;",
-        (job_id,)
-    )
-    row = cursor.fetchone()
+    query = """
+        SELECT r.id, r.filename 
+        FROM resumes r
+        WHERE r.is_protected = FALSE
+        AND NOT EXISTS (
+            -- Must not be linked to ANY active job
+            SELECT 1 FROM job_resumes jr
+            JOIN jobs j ON jr.job_id = j.id
+            WHERE jr.resume_id = r.id AND (j.is_active = TRUE OR j.closed_at IS NULL OR j.closed_at > NOW() - INTERVAL '%s days')
+        )
+        AND EXISTS (
+            -- Must have been linked to AT LEAST ONE closed job that expired
+            SELECT 1 FROM job_resumes jr
+            JOIN jobs j ON jr.job_id = j.id
+            WHERE jr.resume_id = r.id AND j.is_active = FALSE AND j.closed_at < NOW() - INTERVAL '%s days'
+        );
+    """
+    cursor.execute(query, (retention_days, retention_days))
+    rows = cursor.fetchall()
     cursor.close()
     conn.close()
-    if row:
-        return json.loads(row[0]) if isinstance(row[0], str) else row[0]
-    return None
+    return rows
+
+def log_audit_event(target_type: str, target_id: int, action: str, reason: str = None):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO audit_logs (target_type, target_id, action, reason)
+        VALUES (%s, %s, %s, %s);
+    """, (target_type, target_id, action, reason))
+    conn.commit()
+    cursor.close()
+    conn.close()

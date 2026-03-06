@@ -57,3 +57,13 @@ def process_job_task(self, job_id: int, job_data: dict):
     except Exception as exc:
         logger.error(f"Job processing failed for job_id={job_id}: {exc}")
         raise self.retry(exc=exc, countdown=30, max_retries=3)
+
+
+@celery_app.task(name="cleanup_resumes_task")
+def cleanup_resumes_task():
+    """
+    Background task to cleanup stale resumes.
+    Usually scheduled via Celery Beat or triggered manually.
+    """
+    from app.services.cleanup import DataLifecycleManager
+    return DataLifecycleManager.cleanup_stale_resumes()

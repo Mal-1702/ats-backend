@@ -53,7 +53,8 @@ export const uploadAPI = {
 };
 
 export const resumesAPI = {
-    getAll: () => api.get('/resumes'),
+    getAll: (params = {}) => api.get('/resumes', { params }),
+    getUniqueSkills: () => api.get('/resumes/skills'),
     delete: (resumeId) => api.delete(`/resumes/${resumeId}`),
     downloadResume: (resumeId) => api.get(`/resumes/${resumeId}/download`, { responseType: 'blob' }),
     viewResume: (resumeId) => api.get(`/resumes/${resumeId}/view`, { responseType: 'blob' }),
@@ -77,6 +78,53 @@ export const resumeAnalysisAPI = {
         });
     },
     chat: (sessionId, message) => api.post(`/resume-analysis/chat/${sessionId}`, { message }),
+    chatStream: async (sessionId, message, onToken, onError, onDone) => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`${API_BASE_URL}/resume-analysis/chat-stream/${sessionId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ message })
+            });
+
+            if (!response.ok) throw new Error('Network response was not ok');
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop();
+
+                for (const line of lines) {
+                    if (line.trim().startsWith('data: ')) {
+                        const data = line.trim().slice(6);
+                        if (data === '[DONE]') {
+                            onDone?.();
+                            return;
+                        }
+                        try {
+                            const parsed = JSON.parse(data);
+                            if (parsed.token) onToken(parsed.token);
+                            if (parsed.error) onError?.(parsed.error);
+                        } catch (e) {
+                            console.error('Error parsing SSE data:', e);
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            onError?.(error.message);
+        }
+    }
 };
 
 export default api;

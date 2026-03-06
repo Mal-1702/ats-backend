@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     # Security
     BCRYPT_ROUNDS: int = 12
 
+    # Data Lifecycle
+    RESUME_RETENTION_DAYS: int = 90
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

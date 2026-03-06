@@ -118,19 +118,43 @@ const ResumeRating = () => {
 
         const userMessage = chatInput.trim();
         setChatMessages(prev => [...prev, { type: 'user', text: userMessage }]);
+
+        const aiMessageId = Date.now();
+        setChatMessages(prev => [...prev, { id: aiMessageId, type: 'ai', text: '', isStreaming: true }]);
+
         setChatInput('');
         setChatLoading(true);
 
         try {
-            const response = await resumeAnalysisAPI.chat(sessionId, userMessage);
-            setChatMessages(prev => [...prev, { type: 'ai', text: response.data.response }]);
+            let fullText = '';
+            await resumeAnalysisAPI.chatStream(
+                sessionId,
+                userMessage,
+                (token) => {
+                    fullText += token;
+                    setChatMessages(prev => prev.map(msg =>
+                        msg.id === aiMessageId ? { ...msg, text: fullText } : msg
+                    ));
+                },
+                (error) => {
+                    console.error('Streaming error:', error);
+                    setChatMessages(prev => prev.map(msg =>
+                        msg.id === aiMessageId ? { ...msg, text: fullText + '\n\n**[Error during streaming]**', isStreaming: false } : msg
+                    ));
+                },
+                () => {
+                    setChatMessages(prev => prev.map(msg =>
+                        msg.id === aiMessageId ? { ...msg, isStreaming: false } : msg
+                    ));
+                    setChatLoading(false);
+                }
+            );
         } catch (error) {
             console.error('Chat error:', error);
-            setChatMessages(prev => [...prev, {
+            setChatMessages(prev => [...prev.filter(m => m.id !== aiMessageId), {
                 type: 'ai',
                 text: 'Sorry, I encountered an error. Please try again.'
             }]);
-        } finally {
             setChatLoading(false);
         }
     };
@@ -324,6 +348,7 @@ const ResumeRating = () => {
                                                 <ReactMarkdown remarkPlugins={[remarkBreaks]}>
                                                     {msg.text}
                                                 </ReactMarkdown>
+                                                {msg.isStreaming && <span className="streaming-cursor" />}
                                             </div>
                                         </div>
                                     ))}

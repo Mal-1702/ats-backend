@@ -439,61 +439,161 @@ def _parse_year_month(month_s: str, year_s: str) -> Tuple[int, int]:
 
 def extract_years_of_experience(text: str) -> float:
     """
-    Phase 6: Compute total professional experience from employment date ranges.
-    Never treats bare calendar years (2025) as duration.
+    Phase 6: Multi-layer experience extraction.
+    1. Prioritize explicit statements ("X+ years of experience").
+    2. Fallback to calculating non-overlapping duration from 'Work Experience' section.
+    3. Filter out Education/Certifications/Personal info to avoid false positives.
     """
     tn = normalize_text(text)
+    
+    # --- Layer 1: Explicit Statement Detection (Priority) ---
+    explicit_patterns = [
+        r'(\d+(?:\.\d+)?)\s*\+?\s*years?\s+(?:of\s+)?(?:relevant\s+|professional\s+|industry\s+|work\s+|total\s+)?experience',
+        r'(?:over|more\s+than|approx(?:imately)?|about)\s+(\d+(?:\.\d+)?)\s*years?',
+        r'(\d+(?:\.\d+)?)\s*years?\s+in\s+(?:the\s+)?(?:it\s+|software\s+|tech\s+)?industry',
+    ]
+    
+    explicit_vals = []
+    for pat in explicit_patterns:
+        matches = re.findall(pat, tn, re.IGNORECASE)
+        for m in matches:
+            try:
+                val = float(m)
+                if 0.5 <= val <= MAX_EXP_YEARS:
+                    explicit_vals.append(val)
+            except ValueError:
+                continue
+    
+    explicit_years = max(explicit_vals) if explicit_vals else 0.0
+
+    # --- Layer 2: Section-Aware Timeline Calculation ---
+    # Identify Work Experience section vs Education
+    work_keywords = ['work experience', 'professional experience', 'employment history', 'experience:', 'work history', 'career summary']
+    edu_keywords = ['education', 'academic background', 'academic history', 'certifications', 'university', 'college']
+    
+    # Find start and end of work section
+    work_start = -1
+    for kw in work_keywords:
+        pos = tn.find(kw)
+        if pos != -1:
+            work_start = pos
+            break
+            
+    edu_start = -1
+    for kw in edu_keywords:
+        pos = tn.find(kw)
+        if pos != -1:
+            edu_start = pos
+            break
+            
+    # Extract work text specifically, or use full text if sectioning fails
+    if work_start != -1:
+        if edu_start > work_start:
+            work_text = tn[work_start:edu_start]
+        else:
+            work_text = tn[work_start:] # Hope work comes after edu or edu not found
+    else:
+        # If no work section found, we'll use the whole text but with higher filtering
+        work_text = tn
+
+    # Date Range Extraction
     _mon = (r'(?:(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|'
             r'jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|'
             r'oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s*)?')
+    # Also handle numeric months MM/YYYY
+    _num_mon = r'(?:(\d{1,2})[/-])?'
     _yr  = r'(20\d{2}|19\d{2})'
-    _sep = r'\s*(?:-{1,2}|to|till)\s*'
-    _end = (r'(?:(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|'
+    _sep = r'\s*(?:-{1,2}|to|till|–)\s*'
+    _end = (r'(?:(?:(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|'
             r'jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|'
-            r'oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s*)?'
+            r'oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s*)|'
+            r'(?:(\d{1,2})[/-]))?'
             r'(20\d{2}|19\d{2}|present|current|now|ongoing|till\s*date|to\s*date)')
-    pattern = re.compile(_mon + _yr + _sep + _end, re.IGNORECASE)
+            
+    # Pattern 1: MMM YYYY - MMM YYYY or YYYY - YYYY
+    pattern1 = re.compile(_mon + _yr + _sep + _end, re.IGNORECASE)
+    # Pattern 2: MM/YYYY - MM/YYYY
+    pattern2 = re.compile(_num_mon + _yr + _sep + _end, re.IGNORECASE)
+    
     periods: List[Tuple[int, int]] = []
-    for m in pattern.findall(tn):
-        s_mon_s, s_yr_s, e_mon_s, e_part = m
-        try:
-            s_yr, s_mo = _parse_year_month(s_mon_s, s_yr_s)
-        except (ValueError, AttributeError):
-            continue
-        e_clean = (e_part or '').strip()
-        if re.match(r'^(present|current|now|ongoing|till|to\s*date)', e_clean, re.I):
-            e_yr, e_mo = CURRENT_YEAR, CURRENT_MONTH
-        else:
+    
+    def process_matches(matches, is_numeric_mon=False):
+        for m in matches:
+            if is_numeric_mon:
+                s_mon_val, s_yr_s, e_mon_s, e_mon_num, e_part = m
+                s_mo = int(s_mon_val) if s_mon_val and s_mon_val.isdigit() else 6
+                e_mo_str = e_mon_s or e_mon_num
+            else:
+                s_mon_s, s_yr_s, e_mon_s, e_mon_num, e_part = m
+                s_mo = MONTH_MAP.get((s_mon_s or '').strip().lower().rstrip('.'), 6)
+                e_mo_str = e_mon_s or e_mon_num
+                
             try:
-                e_yr, e_mo = _parse_year_month(e_mon_s, e_clean)
-            except (ValueError, AttributeError):
-                continue
-        if not (1970 <= s_yr <= CURRENT_YEAR):
-            continue
-        if not (s_yr <= e_yr <= CURRENT_YEAR + 1):
-            continue
-        sa, ea = s_yr * 12 + s_mo, e_yr * 12 + e_mo
-        if ea > sa:
-            periods.append((sa, ea))
+                s_yr = int(s_yr_s)
+            except ValueError: continue
+            
+            e_clean = (e_part or '').strip().lower()
+            if re.match(r'^(present|current|now|ongoing|till|to\s*date)', e_clean):
+                e_yr, e_mo = CURRENT_YEAR, CURRENT_MONTH
+            else:
+                try:
+                    e_yr = int(e_clean)
+                    if not e_mo_str:
+                        e_mo = 6
+                    elif str(e_mo_str).isdigit():
+                        e_mo = int(e_mo_str)
+                    else:
+                        e_mo = MONTH_MAP.get(str(e_mo_str).strip().lower().rstrip('.'), 6)
+                except ValueError: continue
+            
+            # Validation
+            if 1970 <= s_yr <= CURRENT_YEAR and s_yr <= e_yr:
+                # Avoid educational blocks if not in work section
+                if work_start == -1 and (e_yr - s_yr) == 4 and "university" in tn[max(0, tn.find(s_yr_s)-50):tn.find(s_yr_s)]:
+                    continue
+                periods.append((s_yr * 12 + s_mo, e_yr * 12 + e_mo))
 
+    process_matches(pattern1.findall(work_text))
+    process_matches(pattern2.findall(work_text), is_numeric_mon=True)
+
+    # Sum non-overlapping periods
+    timeline_years = 0.0
     if periods:
-        earliest = min(p[0] for p in periods)
-        latest   = max(p[1] for p in periods)
-        years    = round((latest - earliest) / 12, 1)
-        return min(max(years, 0.0), float(MAX_EXP_YEARS))
+        periods.sort()
+        if not periods:
+            timeline_years = 0.0
+        else:
+            merged = []
+            curr_s, curr_e = periods[0]
+            for next_s, next_e in periods[1:]:
+                if next_s <= curr_e:
+                    curr_e = max(curr_e, next_e)
+                else:
+                    merged.append((curr_s, curr_e))
+                    curr_s, curr_e = next_s, next_e
+            merged.append((curr_s, curr_e))
+            
+            total_months = sum((e - s) for s, e in merged)
+            timeline_years = round(total_months / 12, 1)
 
-    # Fallback: explicit statement
-    explicit_re = re.compile(
-        r'(\d+(?:\.\d+)?)\s*\+?\s*years?\s+(?:of\s+)?'
-        r'(?:relevant\s+|professional\s+|industry\s+|work\s+|total\s+)?experience',
-        re.IGNORECASE,
-    )
-    found = explicit_re.findall(tn)
-    if found:
-        val = max(float(v) for v in found)
-        if 0 < val <= MAX_EXP_YEARS:
-            return round(val, 1)
-    return 0.0
+    # --- Layer 3: Cross-Validation ---
+    final_years = 0.0
+    if explicit_years > 0 and timeline_years > 0:
+        if abs(explicit_years - timeline_years) <= 1.5:
+            final_years = explicit_years # Prefer explicit if close
+        else:
+            final_years = timeline_years # Large gap, prefer calculations (often explicit is outdated)
+    else:
+        final_years = explicit_years or timeline_years
+        
+    # Minimum display rounding
+    if final_years < 0.5 and final_years > 0:
+        final_years = 0.5
+    
+    # Cap and round to nearest 0.5
+    final_years = round(final_years * 2) / 2
+    
+    return min(max(final_years, 0.0), float(MAX_EXP_YEARS))
 
 
 # ===========================================================================

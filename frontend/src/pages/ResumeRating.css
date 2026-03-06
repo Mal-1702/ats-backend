@@ -728,50 +728,73 @@
         display: none;
     }
 }
+
 /* Enhanced Chat Message Formatting - ChatGPT Style */
 .message-text {
-  line-height: 1.7;
-  white-space: pre-wrap;
-  word-wrap: break-word;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 .message-text p {
-  margin-bottom: 1em;
+    margin-bottom: 1em;
 }
 
 .message-text ul,
 .message-text ol {
-  margin-left: 1.5em;
-  margin-bottom: 1em;
-  padding-left: 0.5em;
+    margin-left: 1.5em;
+    margin-bottom: 1em;
+    padding-left: 0.5em;
 }
 
 .message-text li {
-  margin-bottom: 0.5em;
-  line-height: 1.6;
+    margin-bottom: 0.5em;
+    line-height: 1.6;
 }
 
 .message-text strong {
-  font-weight: 600;
-  color: #00ff88;
+    font-weight: 600;
+    color: #00ff88;
 }
 
 .message-text code {
-  background: rgba(0, 255, 136, 0.1);
-  padding: 0.2em 0.4em;
-  border-radius: 3px;
-  font-family: 'Courier New', monospace;
-  font-size: 0.9em;
+    background: rgba(0, 255, 136, 0.1);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
 }
 
 .message-header {
-  font-weight: 600;
-  margin-bottom: 0.5em;
-  color: #00ff88;
-  font-size: 0.9em;
+    font-weight: 600;
+    margin-bottom: 0.5em;
+    color: #00ff88;
+    font-size: 0.9em;
 }
 
 .chat-message.user .message-header {
-  color: #4db8ff;
+    color: #4db8ff;
 }
 
+/* Streaming Cursor */
+.streaming-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.2em;
+    background-color: var(--neon-cyan);
+    margin-left: 4px;
+    vertical-align: middle;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+}

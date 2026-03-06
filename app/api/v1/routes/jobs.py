@@ -4,9 +4,10 @@ from app.db.crud import (
     insert_job,
     get_all_jobs,
     get_job_by_id,
-    toggle_job_status,
     delete_job,
     update_job_skills,
+    close_job,
+    reopen_job,
 )
 from app.core.security import get_current_user
 from typing import List
@@ -107,15 +108,27 @@ def update_job_status(
     is_active: bool,
     current_user: dict = Depends(get_current_user)
 ):
-    """Toggle job active/filled status."""
-    success = toggle_job_status(job_id, is_active)
+    """Toggle job active/closed status with proper data archival."""
+    if is_active:
+        success = reopen_job(job_id)
+    else:
+        success = close_job(job_id, reason="Marked as filled/closed via dashboard")
+        
     if not success:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found or update failed")
+        
     return {
-        "message":   f"Job {'activated' if is_active else 'deactivated'} successfully",
+        "message":   f"Job {'reopened' if is_active else 'closed and archived'} successfully",
         "job_id":    job_id,
         "is_active": is_active,
     }
+
+@router.post("/jobs/cleanup", tags=["Jobs"])
+def trigger_cleanup(current_user: dict = Depends(get_current_user)):
+    """Manually trigger the background cleanup of stale resumes."""
+    from app.workers.tasks import cleanup_resumes_task
+    cleanup_resumes_task.delay()
+    return {"message": "Cleanup task triggered successfully"}
 
 
 @router.delete("/jobs/{job_id}", tags=["Jobs"])
