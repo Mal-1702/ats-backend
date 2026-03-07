@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { uploadAPI } from '../services/api';
 import Sidebar from '../components/Sidebar';
@@ -12,6 +12,7 @@ const ResumeUpload = () => {
     const [error, setError] = useState('');
     const [dragActive, setDragActive] = useState(false);
     const navigate = useNavigate();
+    const fileInputRef = useRef(null);
 
     const handleDrag = useCallback((e) => {
         e.preventDefault();
@@ -91,7 +92,7 @@ const ResumeUpload = () => {
         <div className="dashboard-layout">
             <Sidebar />
             <div className="dashboard-main">
-                <div className="resume-upload-page">
+                <div className="upload-page-wrapper">
                     <div className="container upload-container">
                         <div className="upload-header">
                             <Upload size={32} />
@@ -103,22 +104,33 @@ const ResumeUpload = () => {
                             {!uploadResult ? (
                                 <>
                                     <div
-                                        className={`dropzone ${dragActive ? 'active' : ''}`}
+                                        className={`drop-zone ${dragActive ? 'drag-over' : ''}`}
                                         onDragEnter={handleDrag}
                                         onDragLeave={handleDrag}
                                         onDragOver={handleDrag}
                                         onDrop={handleDrop}
+                                        onClick={() => fileInputRef.current?.click()}
                                     >
                                         <div className="dropzone-content">
-                                            <FileText size={48} />
+                                            <div className="upload-icon">
+                                                <FileText size={48} />
+                                            </div>
                                             <h3>Drag & drop your resume(s) here</h3>
                                             <p>or</p>
-                                            <label htmlFor="file-input" className="btn btn-primary">
+                                            <button
+                                                type="button"
+                                                className="browse-button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    fileInputRef.current?.click();
+                                                }}
+                                            >
                                                 <Upload size={18} />
                                                 <span>Browse Files</span>
-                                            </label>
+                                            </button>
                                             <input
                                                 id="file-input"
+                                                ref={fileInputRef}
                                                 type="file"
                                                 accept=".pdf,.docx"
                                                 multiple
@@ -158,7 +170,7 @@ const ResumeUpload = () => {
                                                 </div>
                                             ))}
                                             <button
-                                                className="btn btn-primary upload-btn"
+                                                className="btn-upload"
                                                 onClick={handleUpload}
                                                 disabled={uploading}
                                             >
@@ -182,8 +194,10 @@ const ResumeUpload = () => {
                                     )}
                                 </>
                             ) : (
-                                <div className="upload-success">
-                                    <CheckCircle size={64} />
+                                <div className="success-screen">
+                                    <div className="success-icon">
+                                        <CheckCircle size={64} />
+                                    </div>
                                     <h2>{uploadResult.count} Resume(s) Uploaded Successfully!</h2>
                                     <p>The resumes are being processed by our AI agents.</p>
 
