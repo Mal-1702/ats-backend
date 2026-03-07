@@ -16,6 +16,7 @@ from app.db.crud import (
     get_resume_files_for_job,    # scoped: only resumes for a specific job
     upsert_ranking,
     get_rankings_for_job,
+    bulk_delete_resumes,         # used by post-ranking cleanup
 )
 from app.services.job_ranker import rank_resumes_for_job
 from app.core.security import get_current_user
@@ -97,15 +98,23 @@ def rank_job(
 
     logger.info("Ranked %d resumes for job %d", len(results), job_id)
 
+    # ── Post-ranking cleanup ──────────────────────────────────────────
+    # Runs after all scores are persisted. Deletes Tier D resumes and
+    # caps Tier C to the top-N — scoped strictly to this job's pool.
+    cleanup_summary = cleanup_low_value_resumes(job_id, results)
+    logger.info("Cleanup summary for job %d: %s", job_id, cleanup_summary)
+
     return {
         "job_id":       job_id,
         "ranked_count": len(results),
-        "message":      f"Successfully ranked {len(results)} candidate(s)",
+        "message": f"Successfully ranked {len(results)} candidate(s)",
+        "cleanup": cleanup_summary,
         "results": [
             {
                 "resume_id":       r["resume_id"],
                 "filename":        r["filename"],
                 "score":           r["score"],
+                "tier":            _assign_tier(r["score"]),
                 "breakdown":       r.get("breakdown"),
                 "matched_skills":  r.get("matched_skills", []),
                 "missing_skills":  r.get("missing_skills", []),
@@ -160,6 +169,71 @@ def _assign_tier(score: int) -> str:
     if score >= 75: return "B"
     if score >= 60: return "C"
     return "D"
+
+
+# ─────────────────────────────────────────────────────────
+# Post-ranking cleanup
+# ─────────────────────────────────────────────────────────
+
+def cleanup_low_value_resumes(job_id: int, results: list) -> dict:
+    """
+    Run immediately after ranking completes for a specific job.
+
+    Rules
+    -----
+    • Tier A (score ≥ 90) — keep forever, never touched.
+    • Tier B (score ≥ 75) — keep forever, never touched.
+    • Tier C (score ≥ 60) — keep top 20 by score.
+                            If Tier A+B count < 10, keep top 50 instead.
+    • Tier D (score < 60)  — delete all immediately.
+
+    Only operates on resumes present in `results` (the ranked pool for
+    this specific job). Never touches resumes from other jobs.
+
+    Returns a summary dict describing what was deleted.
+    """
+    if not results:
+        return {"deleted_tier_d": 0, "deleted_tier_c_excess": 0, "ids_deleted": []}
+
+    # Partition by tier
+    tier_a_b = [r for r in results if _assign_tier(r["score"]) in ("A", "B")]
+    tier_c   = [r for r in results if _assign_tier(r["score"]) == "C"]
+    tier_d   = [r for r in results if _assign_tier(r["score"]) == "D"]
+
+    ids_to_delete: list[int] = []
+
+    # Rule 1: delete all Tier D
+    ids_to_delete.extend(r["resume_id"] for r in tier_d)
+
+    # Rule 2: cap Tier C
+    strong_count = len(tier_a_b)
+    tier_c_limit = 50 if strong_count < 10 else 20
+
+    # Sort Tier C descending by score so we keep the best ones
+    tier_c_sorted = sorted(tier_c, key=lambda r: r["score"], reverse=True)
+    tier_c_excess = tier_c_sorted[tier_c_limit:]   # everything beyond the limit
+    ids_to_delete.extend(r["resume_id"] for r in tier_c_excess)
+
+    deleted_ids: list[int] = []
+    if ids_to_delete:
+        try:
+            result = bulk_delete_resumes(ids_to_delete)
+            deleted_ids = result.get("deleted", [])
+            logger.info(
+                "Cleanup for job %d: deleted %d resume(s) (Tier D=%d, Tier C excess=%d)",
+                job_id, len(deleted_ids), len(tier_d), len(tier_c_excess),
+            )
+        except Exception as exc:
+            # Cleanup failure must never crash the ranking response
+            logger.error("Cleanup failed for job %d: %s", job_id, exc)
+
+    return {
+        "tier_c_limit_used": tier_c_limit,
+        "strong_candidates": strong_count,
+        "deleted_tier_d": len(tier_d),
+        "deleted_tier_c_excess": len(tier_c_excess),
+        "ids_deleted": deleted_ids,
+    }
 
 
 def _parse_json_field(field):
