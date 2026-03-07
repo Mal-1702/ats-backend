@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, status, Query
 from fastapi.responses import FileResponse
-from app.db.crud import get_all_resumes, delete_resume, get_resume_by_id, get_unique_skills
+from app.db.crud import get_all_resumes, delete_resume, get_resume_by_id, get_unique_skills, get_resumes_by_job, get_all_jobs_for_filter
 from app.models.resume import ResumeOut
 from typing import List, Optional
 from app.core.security import get_current_user
@@ -17,16 +17,20 @@ def list_resumes(
     min_exp: Optional[float] = None,
     max_exp: Optional[float] = None,
     keywords: Optional[str] = None,
+    job_id: Optional[int] = None,
     current_user: dict = Depends(get_current_user)
 ):
-    """List resumes with optional advanced filtering. Requires authentication."""
-    rows = get_all_resumes(
-        search_query=search,
-        skills=skills,
-        min_experience=min_exp,
-        max_experience=max_exp,
-        keywords=keywords
-    )
+    """List resumes with optional filtering. When job_id is provided, only resumes from that job's applications are returned."""
+    if job_id is not None:
+        rows = get_resumes_by_job(job_id)
+    else:
+        rows = get_all_resumes(
+            search_query=search,
+            skills=skills,
+            min_experience=min_exp,
+            max_experience=max_exp,
+            keywords=keywords
+        )
 
     return [
         ResumeOut(
@@ -38,6 +42,13 @@ def list_resumes(
         )
         for row in rows
     ]
+
+
+@router.get("/resumes/jobs-filter", response_model=List[dict], tags=["Resume"])
+def list_jobs_for_filter(current_user: dict = Depends(get_current_user)):
+    """Get a list of active jobs for use in the HR resume filter panel."""
+    rows = get_all_jobs_for_filter()
+    return [{"id": row[0], "title": row[1]} for row in rows]
 
 
 @router.get("/resumes/skills", response_model=List[str], tags=["Resume"])

@@ -55,6 +55,7 @@ export const uploadAPI = {
 export const resumesAPI = {
     getAll: (params = {}) => api.get('/resumes', { params }),
     getUniqueSkills: () => api.get('/resumes/skills'),
+    getJobsForFilter: () => api.get('/resumes/jobs-filter'),
     delete: (resumeId) => api.delete(`/resumes/${resumeId}`),
     downloadResume: (resumeId) => api.get(`/resumes/${resumeId}/download`, { responseType: 'blob' }),
     viewResume: (resumeId) => api.get(`/resumes/${resumeId}/view`, { responseType: 'blob' }),
@@ -125,6 +126,22 @@ export const resumeAnalysisAPI = {
             onError?.(error.message);
         }
     }
+};
+
+// ─────────────────────────────────────────────────────
+// Public API — No authentication required
+// Used exclusively by the Candidate Portal (/apply page)
+// ─────────────────────────────────────────────────────
+const publicApi = axios.create({
+    baseURL: API_BASE_URL,
+});
+
+export const publicAPI = {
+    getOpenJobs: () => publicApi.get('/public/jobs'),
+    submitApplication: (formData) =>
+        publicApi.post('/public/apply', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        }),
 };
 
 export default api;

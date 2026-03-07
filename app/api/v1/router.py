@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from app.api.v1.routes import (
-    health, upload, ranking, resumes, jobs, auth, resume_analysis
+    health, upload, ranking, resumes, jobs, auth, resume_analysis, public
 )
 
 router = APIRouter()
@@ -12,3 +12,4 @@ router.include_router(ranking.router)
 router.include_router(resumes.router)
 router.include_router(jobs.router)
 router.include_router(resume_analysis.router)
+router.include_router(public.router)

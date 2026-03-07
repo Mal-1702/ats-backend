@@ -7,6 +7,7 @@ import ResumeUpload from './pages/ResumeUpload';
 import ResumeList from './pages/ResumeList';
 import ResumeRating from './pages/ResumeRating';
 import RankedCandidates from './pages/RankedCandidates';
+import CandidatePortal from './pages/CandidatePortal';
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {
@@ -88,6 +89,9 @@ function App() {
                             </ProtectedRoute>
                         }
                     />
+
+                    {/* Public Route — No auth required */}
+                    <Route path="/apply" element={<CandidatePortal />} />
 
                     <Route path="/" element={<Navigate to="/dashboard" />} />
                 </Routes>

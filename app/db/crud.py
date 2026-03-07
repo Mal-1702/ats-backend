@@ -653,3 +653,71 @@ def log_audit_event(target_type: str, target_id: int, action: str, reason: str =
     conn.commit()
     cursor.close()
     conn.close()
+
+
+# ─────────────────────────────────────────────
+# Candidate Portal CRUD
+# ─────────────────────────────────────────────
+
+def get_open_jobs():
+    """Return all active/open jobs (for public candidate portal)."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id, title, skills, min_experience, created_at
+        FROM jobs
+        WHERE is_active = true
+        ORDER BY created_at DESC;
+    """)
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return rows
+
+
+def insert_application(job_id: int, resume_id: int, candidate_name: str, candidate_email: str) -> int:
+    """Insert a new candidate application and return the application ID."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO applications (job_id, resume_id, candidate_name, candidate_email)
+        VALUES (%s, %s, %s, %s)
+        RETURNING id, submitted_at;
+    """, (job_id, resume_id, candidate_name, candidate_email))
+    row = cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+    return row[0], row[1]
+
+
+def get_resumes_by_job(job_id: int):
+    """Return resumes linked to a specific job via the applications table."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT r.id, r.filename, r.uploaded_at, r.experience_years, r.extracted_skills
+        FROM resumes r
+        INNER JOIN applications a ON a.resume_id = r.id
+        WHERE a.job_id = %s
+        ORDER BY r.uploaded_at DESC;
+    """, (job_id,))
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return rows
+
+
+def get_all_jobs_for_filter():
+    """Return id and title of all active jobs for the HR filter panel."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id, title FROM jobs
+        WHERE is_active = true
+        ORDER BY title ASC;
+    """)
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return rows

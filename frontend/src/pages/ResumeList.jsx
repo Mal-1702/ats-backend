@@ -9,6 +9,10 @@ const ResumeList = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    // Job filter State
+    const [jobs, setJobs] = useState([]);
+    const [activeJobId, setActiveJobId] = useState(null);
+
     // Search & Filter State
     const [searchQuery, setSearchQuery] = useState('');
     const [showFilters, setShowFilters] = useState(false);
@@ -20,6 +24,7 @@ const ResumeList = () => {
     useEffect(() => {
         fetchResumes();
         fetchSkills();
+        fetchJobsForFilter();
     }, []);
 
     const fetchResumes = async (params = {}) => {
@@ -42,6 +47,25 @@ const ResumeList = () => {
             setAvailableSkills(response.data);
         } catch (error) {
             console.error('Failed to fetch skills:', error);
+        }
+    };
+
+    const fetchJobsForFilter = async () => {
+        try {
+            const response = await resumesAPI.getJobsForFilter();
+            setJobs(response.data);
+        } catch (error) {
+            console.error('Failed to fetch jobs for filter:', error);
+        }
+    };
+
+    const handleJobFilter = (jobId) => {
+        setActiveJobId(jobId);
+        if (jobId === null) {
+            // Reset to default unfiltered view
+            fetchResumes({});
+        } else {
+            fetchResumes({ job_id: jobId });
         }
     };
 
@@ -158,6 +182,30 @@ const ResumeList = () => {
                                 </button>
                             </div>
                         </div>
+
+                        {/* ── Job Filter Panel ───────────────────────── */}
+                        {jobs.length > 0 && (
+                            <div className="job-filter-panel">
+                                <span className="job-filter-label">Filter by Job:</span>
+                                <div className="job-filter-buttons">
+                                    <button
+                                        className={`job-filter-btn ${activeJobId === null ? 'active' : ''}`}
+                                        onClick={() => handleJobFilter(null)}
+                                    >
+                                        All Resumes
+                                    </button>
+                                    {jobs.map((job) => (
+                                        <button
+                                            key={job.id}
+                                            className={`job-filter-btn ${activeJobId === job.id ? 'active' : ''}`}
+                                            onClick={() => handleJobFilter(job.id)}
+                                        >
+                                            {job.title}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {showFilters && (
                             <div className="filter-panel">
