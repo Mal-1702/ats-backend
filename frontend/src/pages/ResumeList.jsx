@@ -13,6 +13,11 @@ const ResumeList = () => {
     const [jobs, setJobs] = useState([]);
     const [activeJobId, setActiveJobId] = useState(null);
 
+    // Multi-select State
+    const [selectedResumes, setSelectedResumes] = useState([]);
+    const [showBulkModal, setShowBulkModal] = useState(false);
+    const [bulkDeleting, setBulkDeleting] = useState(false);
+
     // Search & Filter State
     const [searchQuery, setSearchQuery] = useState('');
     const [showFilters, setShowFilters] = useState(false);
@@ -107,9 +112,42 @@ const ResumeList = () => {
         try {
             await resumesAPI.delete(resumeId);
             setResumes(resumes.filter(r => r.id !== resumeId));
+            setSelectedResumes(prev => prev.filter(id => id !== resumeId));
         } catch (error) {
             console.error('Delete error:', error);
             setError(`Failed to delete resume: ${error.response?.data?.detail || 'Unknown error'}`);
+        }
+    };
+
+    // ── Multi-select handlers ─────────────────────────────────
+    const toggleSelectResume = (resumeId) => {
+        setSelectedResumes(prev =>
+            prev.includes(resumeId)
+                ? prev.filter(id => id !== resumeId)
+                : [...prev, resumeId]
+        );
+    };
+
+    const handleSelectAll = () => {
+        if (selectedResumes.length === resumes.length) {
+            setSelectedResumes([]);
+        } else {
+            setSelectedResumes(resumes.map(r => r.id));
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        setBulkDeleting(true);
+        try {
+            await resumesAPI.bulkDelete(selectedResumes);
+            setResumes(prev => prev.filter(r => !selectedResumes.includes(r.id)));
+            setSelectedResumes([]);
+            setShowBulkModal(false);
+        } catch (err) {
+            setError(err.response?.data?.detail || 'Bulk delete failed. Please try again.');
+            setShowBulkModal(false);
+        } finally {
+            setBulkDeleting(false);
         }
     };
 
@@ -291,39 +329,114 @@ const ResumeList = () => {
                                 <p>Try adjusting your search or filters</p>
                             </div>
                         ) : (
-                            <div className="resume-grid">
-                                {resumes.map(resume => (
-                                    <div key={resume.id} className="resume-card">
-                                        <div className="resume-header-row">
-                                            <div className="resume-icon">
-                                                <FileText size={32} />
+                            <>
+                                {/* ── Multi-select control bar ───────────── */}
+                                <div className="bulk-control-bar">
+                                    <label className="select-all-label">
+                                        <input
+                                            type="checkbox"
+                                            className="bulk-checkbox"
+                                            checked={resumes.length > 0 && selectedResumes.length === resumes.length}
+                                            onChange={handleSelectAll}
+                                        />
+                                        <span>
+                                            {selectedResumes.length === 0
+                                                ? 'Select All'
+                                                : selectedResumes.length === resumes.length
+                                                    ? 'Deselect All'
+                                                    : `${selectedResumes.length} selected`}
+                                        </span>
+                                    </label>
+
+                                    {selectedResumes.length > 0 && (
+                                        <button
+                                            className="btn-bulk-delete"
+                                            onClick={() => setShowBulkModal(true)}
+                                        >
+                                            <Trash2 size={16} />
+                                            Delete Selected ({selectedResumes.length})
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="resume-grid">
+                                    {resumes.map(resume => (
+                                        <div
+                                            key={resume.id}
+                                            className={`resume-card ${selectedResumes.includes(resume.id) ? 'resume-card--selected' : ''}`}
+                                        >
+                                            {/* Checkbox */}
+                                            <div className="resume-checkbox-wrapper">
+                                                <input
+                                                    type="checkbox"
+                                                    className="resume-checkbox"
+                                                    checked={selectedResumes.includes(resume.id)}
+                                                    onChange={() => toggleSelectResume(resume.id)}
+                                                />
                                             </div>
-                                            <div className="resume-info">
-                                                <h3 className="resume-filename">{resume.filename}</h3>
-                                                <div className="resume-meta">
-                                                    <span className="resume-date">
-                                                        {new Date(resume.uploaded_at).toLocaleDateString()}
-                                                    </span>
+
+                                            <div className="resume-header-row">
+                                                <div className="resume-icon">
+                                                    <FileText size={32} />
+                                                </div>
+                                                <div className="resume-info">
+                                                    <h3 className="resume-filename">{resume.filename}</h3>
+                                                    <div className="resume-meta">
+                                                        <span className="resume-date">
+                                                            {new Date(resume.uploaded_at).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <div className="resume-footer">
+                                                <button className="btn-view" onClick={() => handleView(resume.id)} title="View">
+                                                    <Eye size={18} />
+                                                    <span>View</span>
+                                                </button>
+                                                <button className="btn-download" onClick={() => handleDownload(resume.id, resume.filename)} title="Download">
+                                                    <Download size={18} />
+                                                    <span>Download</span>
+                                                </button>
+                                                <button className="btn-delete" onClick={() => handleDelete(resume.id, resume.filename)} title="Delete">
+                                                    <Trash2 size={18} />
+                                                    <span>Delete</span>
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div className="resume-footer">
-                                            <button className="btn-view" onClick={() => handleView(resume.id)} title="View">
-                                                <Eye size={18} />
-                                                <span>View</span>
-                                            </button>
-                                            <button className="btn-download" onClick={() => handleDownload(resume.id, resume.filename)} title="Download">
-                                                <Download size={18} />
-                                                <span>Download</span>
-                                            </button>
-                                            <button className="btn-delete" onClick={() => handleDelete(resume.id, resume.filename)} title="Delete">
-                                                <Trash2 size={18} />
-                                                <span>Delete</span>
-                                            </button>
+                                    ))}
+                                </div>
+
+                                {/* ── Bulk-delete confirmation modal ────── */}
+                                {showBulkModal && (
+                                    <div className="modal-overlay" onClick={() => !bulkDeleting && setShowBulkModal(false)}>
+                                        <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+                                            <div className="modal-icon">⚠</div>
+                                            <h3>Confirm Deletion</h3>
+                                            <p>
+                                                Are you sure you want to permanently delete{' '}
+                                                <strong>{selectedResumes.length} resume{selectedResumes.length > 1 ? 's' : ''}</strong>?
+                                                This action cannot be undone.
+                                            </p>
+                                            <div className="modal-actions">
+                                                <button
+                                                    className="modal-btn-cancel"
+                                                    onClick={() => setShowBulkModal(false)}
+                                                    disabled={bulkDeleting}
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    className="modal-btn-confirm"
+                                                    onClick={handleBulkDelete}
+                                                    disabled={bulkDeleting}
+                                                >
+                                                    {bulkDeleting ? 'Deleting...' : 'Confirm Delete'}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>

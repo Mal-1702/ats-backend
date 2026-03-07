@@ -1,13 +1,18 @@
 from fastapi import APIRouter, HTTPException, Depends, status, Query
 from fastapi.responses import FileResponse
-from app.db.crud import get_all_resumes, delete_resume, get_resume_by_id, get_unique_skills, get_resumes_by_job, get_all_jobs_for_filter
+from app.db.crud import get_all_resumes, delete_resume, get_resume_by_id, get_unique_skills, get_resumes_by_job, get_all_jobs_for_filter, bulk_delete_resumes
 from app.models.resume import ResumeOut
 from typing import List, Optional
 from app.core.security import get_current_user
 from app.core.config import get_settings
+from pydantic import BaseModel
 import os
 
 router = APIRouter()
+
+
+class BulkDeleteRequest(BaseModel):
+    resume_ids: List[int]
 
 
 @router.get("/resumes", response_model=list[ResumeOut], tags=["Resume"])
@@ -55,6 +60,31 @@ def list_jobs_for_filter(current_user: dict = Depends(get_current_user)):
 def list_unique_skills(current_user: dict = Depends(get_current_user)):
     """Get a unique list of all skills found in resumes. Requires authentication."""
     return get_unique_skills()
+
+
+@router.delete("/resumes/bulk-delete", tags=["Resume"])
+def bulk_delete_resumes_endpoint(
+    payload: BulkDeleteRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Bulk-delete multiple resumes in a single atomic transaction.
+    Requires authentication. Returns count of deleted resumes.
+    """
+    if not payload.resume_ids:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="resume_ids list must not be empty.",
+        )
+
+    result = bulk_delete_resumes(payload.resume_ids)
+
+    return {
+        "status": "success",
+        "deleted_count": len(result["deleted"]),
+        "deleted_ids": result["deleted"],
+        "not_found_ids": result["not_found"],
+    }
 
 
 @router.delete("/resumes/{resume_id}", tags=["Resume"])

@@ -57,6 +57,7 @@ export const resumesAPI = {
     getUniqueSkills: () => api.get('/resumes/skills'),
     getJobsForFilter: () => api.get('/resumes/jobs-filter'),
     delete: (resumeId) => api.delete(`/resumes/${resumeId}`),
+    bulkDelete: (resumeIds) => api.delete('/resumes/bulk-delete', { data: { resume_ids: resumeIds } }),
     downloadResume: (resumeId) => api.get(`/resumes/${resumeId}/download`, { responseType: 'blob' }),
     viewResume: (resumeId) => api.get(`/resumes/${resumeId}/view`, { responseType: 'blob' }),
 };

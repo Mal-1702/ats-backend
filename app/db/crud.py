@@ -264,6 +264,30 @@ def get_all_resume_files():
     return rows
 
 
+def get_resume_files_for_job(job_id: int) -> List[Tuple]:
+    """
+    Return (resume_id, filename) tuples for resumes that belong to
+    the given job — i.e. resumes uploaded via the candidate portal
+    and recorded in the applications table.
+
+    Falls back to an empty list if no applications exist, so the
+    ranking endpoint can return a clear 'no candidates yet' message.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT DISTINCT r.id, r.filename
+        FROM resumes r
+        JOIN applications a ON a.resume_id = r.id
+        WHERE a.job_id = %s
+        ORDER BY r.id;
+    """, (job_id,))
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return rows
+
+
 def upsert_ranking(job_id: int, resume_id: int, score: int,
                    breakdown: dict = None, insights: dict = None):
     """
@@ -721,3 +745,45 @@ def get_all_jobs_for_filter():
     cur.close()
     conn.close()
     return rows
+
+
+def bulk_delete_resumes(resume_ids: list) -> dict:
+    """
+    Delete multiple resumes in a single atomic transaction.
+    Returns {'deleted': [ids], 'not_found': [ids]}.
+    File removal happens outside the transaction so a missing file
+    never rolls back the DB deletion.
+    """
+    import os
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # 1. Fetch file names for the requested IDs
+    cur.execute(
+        "SELECT id, filename FROM resumes WHERE id = ANY(%s);",
+        (resume_ids,)
+    )
+    found_rows = cur.fetchall()
+    found_ids = [r[0] for r in found_rows]
+    not_found = [rid for rid in resume_ids if rid not in found_ids]
+
+    if found_ids:
+        # 2. Delete from DB in one transaction (FK cascades handle applications)
+        cur.execute(
+            "DELETE FROM resumes WHERE id = ANY(%s);",
+            (found_ids,)
+        )
+        conn.commit()
+
+        # 3. Remove files from disk (best-effort, errors are logged not raised)
+        for _, filename in found_rows:
+            path = os.path.join("uploads", filename)
+            try:
+                if os.path.exists(path):
+                    os.remove(path)
+            except Exception as e:
+                print(f"Warning: could not delete file {path}: {e}")
+
+    cur.close()
+    conn.close()
+    return {"deleted": found_ids, "not_found": not_found}

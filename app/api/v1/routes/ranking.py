@@ -12,7 +12,8 @@ from app.services.resume_parser import parse_resume
 from app.services.scorer import score_resume
 from app.db.crud import (
     get_job_by_id,
-    get_all_resume_files,
+    get_all_resume_files,        # kept for rank-resume single endpoint
+    get_resume_files_for_job,    # scoped: only resumes for a specific job
     upsert_ranking,
     get_rankings_for_job,
 )
@@ -73,9 +74,14 @@ def rank_job(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    resumes = get_all_resume_files()
+    # Fetch ONLY resumes associated with this job (via the applications table)
+    resumes = get_resume_files_for_job(job_id)
     if not resumes:
-        return {"message": "No resumes uploaded yet", "results": [], "ranked_count": 0}
+        return {
+            "message": f"No candidate applications found for this job yet. Share the /apply link with candidates.",
+            "results": [],
+            "ranked_count": 0,
+        }
 
     results = rank_resumes_for_job(job, resumes)
 
