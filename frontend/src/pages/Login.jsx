@@ -9,8 +9,11 @@ const Login = () => {
     const [formData, setFormData] = useState({
         email: '',
         password: '',
+        confirmPassword: '',
         fullName: '',
+        dob: '',
     });
+    const [validationErrors, setValidationErrors] = useState({});
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showWelcome, setShowWelcome] = useState(false);
@@ -19,49 +22,73 @@ const Login = () => {
     const { login, register } = useAuth();
     const navigate = useNavigate();
 
+    const validateSignup = () => {
+        const errs = {};
+        if (!formData.fullName.trim()) errs.fullName = 'Full name is required';
+        if (!formData.dob) errs.dob = 'Date of birth is required';
+        if (!formData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) errs.email = 'Enter a valid email address';
+        if (formData.password.length < 8) errs.password = 'Password must be at least 8 characters';
+        if (formData.password !== formData.confirmPassword) errs.confirmPassword = 'Passwords do not match';
+        return errs;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        setLoading(true);
+        setValidationErrors({});
 
+        if (!isLogin) {
+            const errs = validateSignup();
+            if (Object.keys(errs).length > 0) {
+                setValidationErrors(errs);
+                return;
+            }
+        }
+
+        setLoading(true);
         const normalizedEmail = formData.email.trim().toLowerCase();
         try {
             let result;
             if (isLogin) {
                 result = await login(normalizedEmail, formData.password);
             } else {
-                result = await register(normalizedEmail, formData.password, formData.fullName);
+                result = await register(
+                    normalizedEmail,
+                    formData.password,
+                    formData.fullName.trim(),
+                    formData.dob || null,
+                );
             }
 
             if (result.success) {
-                // Extract username from email or full name
                 const name = formData.fullName || formData.email.split('@')[0];
                 setUsername(name);
-
-                // Show welcome message after 1.5 seconds of loading
                 setTimeout(() => {
                     setShowWelcome(true);
-
-                    // Redirect to dashboard after 2 seconds of welcome screen
-                    setTimeout(() => {
-                        navigate('/dashboard');
-                    }, 2000);
+                    setTimeout(() => { navigate('/dashboard'); }, 2000);
                 }, 1500);
             } else {
                 setError(result.error);
                 setLoading(false);
             }
-        } catch (err) {
+        } catch {
             setError('An unexpected error occurred');
             setLoading(false);
         }
     };
 
     const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+        // Clear validation error for the field being edited
+        if (validationErrors[e.target.name]) {
+            setValidationErrors((prev) => { const n = { ...prev }; delete n[e.target.name]; return n; });
+        }
+    };
+
+    const switchMode = () => {
+        setIsLogin(!isLogin);
+        setError('');
+        setValidationErrors({});
     };
 
     return (
@@ -101,48 +128,97 @@ const Login = () => {
                         </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="login-form">
+                    <form onSubmit={handleSubmit} className="login-form" noValidate>
+
+                        {/* ── Signup-only fields ── */}
                         {!isLogin && (
-                            <div className="form-group">
-                                <input
-                                    type="text"
-                                    name="fullName"
-                                    className="form-input"
-                                    value={formData.fullName}
-                                    onChange={handleChange}
-                                    required={!isLogin}
-                                    placeholder=" "
-                                />
-                                <label className="form-label">Full Name</label>
-                            </div>
+                            <>
+                                {/* Full Name */}
+                                <div className="form-group">
+                                    <input
+                                        type="text"
+                                        name="fullName"
+                                        className={`form-input${validationErrors.fullName ? ' input-error' : ''}`}
+                                        value={formData.fullName}
+                                        onChange={handleChange}
+                                        placeholder=" "
+                                    />
+                                    <label className="form-label">Full Name</label>
+                                    {validationErrors.fullName && (
+                                        <span className="field-error">{validationErrors.fullName}</span>
+                                    )}
+                                </div>
+
+                                {/* Date of Birth */}
+                                <div className="form-group">
+                                    <input
+                                        type="date"
+                                        name="dob"
+                                        className={`form-input form-input-date${validationErrors.dob ? ' input-error' : ''}`}
+                                        value={formData.dob}
+                                        onChange={handleChange}
+                                        max={new Date().toISOString().split('T')[0]}
+                                    />
+                                    <label className={`form-label${formData.dob ? ' label-active' : ''}`}>Date of Birth</label>
+                                    {validationErrors.dob && (
+                                        <span className="field-error">{validationErrors.dob}</span>
+                                    )}
+                                </div>
+                            </>
                         )}
 
+                        {/* Email */}
                         <div className="form-group">
                             <input
                                 type="email"
                                 name="email"
-                                className="form-input"
+                                className={`form-input${validationErrors.email ? ' input-error' : ''}`}
                                 value={formData.email}
                                 onChange={handleChange}
                                 required
                                 placeholder=" "
                             />
                             <label className="form-label">Email</label>
+                            {validationErrors.email && (
+                                <span className="field-error">{validationErrors.email}</span>
+                            )}
                         </div>
 
+                        {/* Password */}
                         <div className="form-group">
                             <input
                                 type="password"
                                 name="password"
-                                className="form-input"
+                                className={`form-input${validationErrors.password ? ' input-error' : ''}`}
                                 value={formData.password}
                                 onChange={handleChange}
                                 required
                                 placeholder=" "
-                                minLength={6}
+                                minLength={8}
                             />
                             <label className="form-label">Password</label>
+                            {validationErrors.password && (
+                                <span className="field-error">{validationErrors.password}</span>
+                            )}
                         </div>
+
+                        {/* Confirm Password — signup only */}
+                        {!isLogin && (
+                            <div className="form-group">
+                                <input
+                                    type="password"
+                                    name="confirmPassword"
+                                    className={`form-input${validationErrors.confirmPassword ? ' input-error' : ''}`}
+                                    value={formData.confirmPassword}
+                                    onChange={handleChange}
+                                    placeholder=" "
+                                />
+                                <label className="form-label">Confirm Password</label>
+                                {validationErrors.confirmPassword && (
+                                    <span className="field-error">{validationErrors.confirmPassword}</span>
+                                )}
+                            </div>
+                        )}
 
                         {error && <div className="error-message">{error}</div>}
 
@@ -150,15 +226,9 @@ const Login = () => {
                             {loading ? (
                                 <div className="spinner" />
                             ) : isLogin ? (
-                                <>
-                                    <LogIn size={18} />
-                                    <span>Sign In</span>
-                                </>
+                                <><LogIn size={18} /><span>Sign In</span></>
                             ) : (
-                                <>
-                                    <UserPlus size={18} />
-                                    <span>Create Account</span>
-                                </>
+                                <><UserPlus size={18} /><span>Create Account</span></>
                             )}
                         </button>
                     </form>
@@ -166,14 +236,7 @@ const Login = () => {
                     <div className="login-footer">
                         <p>
                             {isLogin ? "Don't have an account? " : 'Already have an account? '}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setIsLogin(!isLogin);
-                                    setError('');
-                                }}
-                                className="toggle-auth-mode"
-                            >
+                            <button type="button" onClick={switchMode} className="toggle-auth-mode">
                                 {isLogin ? 'Sign up' : 'Sign in'}
                             </button>
                         </p>

@@ -20,7 +20,7 @@ router = APIRouter()
 
 
 def _row_to_user_out(row) -> UserOut:
-    """Convert DB row (id, email, full_name, is_active, created_at, role) to UserOut."""
+    """Convert DB row (id, email, full_name, is_active, created_at, role, dob) to UserOut."""
     return UserOut(
         id=row[0],
         email=row[1],
@@ -28,6 +28,7 @@ def _row_to_user_out(row) -> UserOut:
         is_active=row[3],
         created_at=row[4],
         role=row[5] if len(row) > 5 else "hr",
+        dob=row[6] if len(row) > 6 else None,
     )
 
 
@@ -61,10 +62,11 @@ def create_staff_user(payload: UserCreate, current_user: dict = Depends(require_
         hashed_password=hashed,
         full_name=payload.full_name,
         role=payload.role,
+        dob=payload.dob,
     )
 
     user_row = get_user_by_id(user_id)
-    # get_user_by_id returns (id, email, pw_hash, full_name, is_active, created_at, role)
+    # get_user_by_id returns (id, email, pw_hash, full_name, is_active, created_at, role, dob)
     return UserOut(
         id=user_row[0],
         email=user_row[1],
@@ -72,6 +74,7 @@ def create_staff_user(payload: UserCreate, current_user: dict = Depends(require_
         is_active=user_row[4],
         created_at=user_row[5],
         role=user_row[6] if len(user_row) > 6 else "hr",
+        dob=user_row[7] if len(user_row) > 7 else None,
     )
 
 
@@ -130,6 +133,7 @@ def change_user_role(user_id: int, payload: UserUpdateRole, current_user: dict =
         is_active=updated[4],
         created_at=updated[5],
         role=updated[6] if len(updated) > 6 else "hr",
+        dob=updated[7] if len(updated) > 7 else None,
     )
 
 

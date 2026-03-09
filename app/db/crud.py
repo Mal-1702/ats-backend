@@ -516,13 +516,13 @@ def update_job_with_profile(job_id: int, job_profile: dict):
 # USER AUTHENTICATION CRUD
 # ============================================
 
-def create_user(email: str, hashed_password: str, full_name: str = None, role: str = "hr") -> int:
+def create_user(email: str, hashed_password: str, full_name: str = None, role: str = "hr", dob=None) -> int:
     """Create a new user account. Defaults to 'hr' role."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO users (email, hashed_password, full_name, role) VALUES (%s, %s, %s, %s) RETURNING id;",
-        (email.strip().lower(), hashed_password, full_name, role)
+        "INSERT INTO users (email, hashed_password, full_name, role, dob) VALUES (%s, %s, %s, %s, %s) RETURNING id;",
+        (email.strip().lower(), hashed_password, full_name, role, dob)
     )
     user_id = cursor.fetchone()[0]
     conn.commit()
@@ -532,11 +532,11 @@ def create_user(email: str, hashed_password: str, full_name: str = None, role: s
 
 
 def get_user_by_email(email: str):
-    """Get user by email. Returns row: (id, email, hashed_password, full_name, is_active, created_at, role)"""
+    """Get user by email. Returns row: (id, email, hashed_password, full_name, is_active, created_at, role, dob)"""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id, email, hashed_password, full_name, is_active, created_at, COALESCE(role, 'hr') FROM users WHERE email = %s;",
+        "SELECT id, email, hashed_password, full_name, is_active, created_at, COALESCE(role, 'hr'), dob FROM users WHERE email = %s;",
         (email.strip().lower(),)
     )
     row = cursor.fetchone()
@@ -546,11 +546,11 @@ def get_user_by_email(email: str):
 
 
 def get_user_by_id(user_id: int):
-    """Get user by ID. Returns row: (id, email, hashed_password, full_name, is_active, created_at, role)"""
+    """Get user by ID. Returns row: (id, email, hashed_password, full_name, is_active, created_at, role, dob)"""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id, email, hashed_password, full_name, is_active, created_at, COALESCE(role, 'hr') FROM users WHERE id = %s;",
+        "SELECT id, email, hashed_password, full_name, is_active, created_at, COALESCE(role, 'hr'), dob FROM users WHERE id = %s;",
         (user_id,)
     )
     row = cursor.fetchone()
@@ -564,7 +564,7 @@ def get_all_users() -> list:
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT id, email, full_name, is_active, created_at, COALESCE(role, 'hr') as role
+        SELECT id, email, full_name, is_active, created_at, COALESCE(role, 'hr') as role, dob
         FROM users
         WHERE COALESCE(role, 'hr') IN ('hr', 'admin', 'ceo')
         ORDER BY created_at ASC;

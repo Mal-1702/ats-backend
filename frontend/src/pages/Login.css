@@ -304,7 +304,9 @@
 .link-button:hover {
     color: var(--neon-purple);
     text-decoration: underline;
-}/* Loading Overlay - Full Screen */
+}
+
+/* Loading Overlay - Full Screen */
 .loading-overlay {
     position: fixed;
     top: 0;
@@ -392,30 +394,109 @@
 
 /* Animations */
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes scaleIn {
-    from { transform: scale(0.8); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
 }
 
 @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
 }
 
 @keyframes slideDown {
-    from { transform: translateY(-30px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from {
+        transform: translateY(-30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ── Field-level validation errors ─────────────────────────── */
+.field-error {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.78rem;
+    color: #f87171;
+    padding-left: 0.25rem;
+}
+
+.input-error {
+    border-color: rgba(239, 68, 68, 0.6) !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+/* ── Date input styling ─────────────────────────────────────── */
+.form-input-date {
+    color-scheme: dark;
+}
+
+/* Force label up when a date value is selected */
+.form-group .label-active {
+    top: 0 !important;
+    font-size: 0.75rem !important;
+    color: var(--neon-blue) !important;
+    font-weight: 600 !important;
+}
+
+/* ── Toggle auth mode link-button ───────────────────────────── */
+.toggle-auth-mode {
+    background: none;
+    border: none;
+    color: var(--neon-blue);
+    font-weight: 600;
+    cursor: pointer;
+    font-size: inherit;
+    font-family: inherit;
+    transition: color 0.2s;
+}
+
+.toggle-auth-mode:hover {
+    color: var(--neon-purple);
+    text-decoration: underline;
 }

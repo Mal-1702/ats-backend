@@ -15,7 +15,7 @@ settings = get_settings()
 
 
 def _row_to_user_out(row) -> UserOut:
-    """Convert a DB user row to UserOut. Row: (id, email, pw_hash, full_name, is_active, created_at, role)"""
+    """Convert a DB user row to UserOut. Row: (id, email, pw_hash, full_name, is_active, created_at, role, dob)"""
     return UserOut(
         id=row[0],
         email=row[1],
@@ -23,6 +23,7 @@ def _row_to_user_out(row) -> UserOut:
         role=row[6] if len(row) > 6 else "hr",
         is_active=row[4],
         created_at=row[5],
+        dob=row[7] if len(row) > 7 else None,
     )
 
 
@@ -45,6 +46,7 @@ def register(payload: UserRegister):
         hashed_password=hashed,
         full_name=payload.full_name,
         role="hr",      # public registration always hr
+        dob=payload.dob,
     )
 
     user_row = get_user_by_id(user_id)

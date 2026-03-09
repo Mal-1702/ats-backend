@@ -41,12 +41,14 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const register = async (email, password, fullName) => {
+    const register = async (email, password, fullName, dob) => {
         try {
             await authAPI.register({
                 email,
                 password,
-                full_name: fullName
+                confirm_password: password,   // backend validates; frontend already checks match
+                full_name: fullName,
+                dob: dob || null,
             });
 
             // Auto-login after registration
