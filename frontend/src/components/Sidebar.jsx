@@ -1,7 +1,10 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Briefcase, Upload, BarChart3, FileText, Home, Star } from 'lucide-react';
+import { LogOut, Briefcase, Upload, BarChart3, FileText, Home, Star, Settings } from 'lucide-react';
 import './Sidebar.css';
+
+const ROLE_LABELS = { ceo: 'CEO', admin: 'Admin', hr: 'HR' };
+const ROLE_BADGE_CLASS = { ceo: 'badge-ceo', admin: 'badge-admin', hr: 'badge-hr' };
 
 const Sidebar = () => {
     const { user, logout } = useAuth();
@@ -44,6 +47,17 @@ const Sidebar = () => {
                             <span className="link-label">{item.label}</span>
                         </Link>
                     ))}
+
+                    {/* CEO-only Settings link */}
+                    {user?.role === 'ceo' && (
+                        <Link
+                            to="/settings"
+                            className={`sidebar-link sidebar-link--settings ${location.pathname === '/settings' ? 'active' : ''}`}
+                        >
+                            <span className="link-icon"><Settings size={20} /></span>
+                            <span className="link-label">Settings</span>
+                        </Link>
+                    )}
                 </nav>
 
                 {/* User Section */}
@@ -54,6 +68,11 @@ const Sidebar = () => {
                         </div>
                         <div className="user-details">
                             <span className="user-email">{user?.email}</span>
+                            {user?.role && (
+                                <span className={`role-badge-sidebar ${ROLE_BADGE_CLASS[user.role] || 'badge-hr'}`}>
+                                    {ROLE_LABELS[user.role] || user.role}
+                                </span>
+                            )}
                         </div>
                     </div>
                     <button onClick={handleLogout} className="btn-logout-sidebar">

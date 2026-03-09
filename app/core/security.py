@@ -51,6 +51,7 @@ def decode_token(token: str) -> dict:
 
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
+    """Return {user_id, email, role} from the JWT payload."""
     payload = decode_token(token)
     user_id = payload.get("sub")
     if user_id is None:
@@ -59,4 +60,40 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return {"user_id": int(user_id), "email": payload.get("email")}
+    return {
+        "user_id": int(user_id),
+        "email": payload.get("email"),
+        "role": payload.get("role", "hr"),   # backward-compat: old tokens without role → default hr
+    }
+
+
+# ─── Role-check reusable dependencies ────────────────────────────────────────
+
+def require_ceo(current_user: dict = Depends(get_current_user)) -> dict:
+    """Allow only CEO users. Raises 403 for everyone else."""
+    if current_user.get("role") != "ceo":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="CEO access required.",
+        )
+    return current_user
+
+
+def require_admin_or_ceo(current_user: dict = Depends(get_current_user)) -> dict:
+    """Allow admin and CEO users."""
+    if current_user.get("role") not in ("admin", "ceo"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin or CEO access required.",
+        )
+    return current_user
+
+
+def require_any_staff(current_user: dict = Depends(get_current_user)) -> dict:
+    """Allow any authenticated HR/admin/CEO user."""
+    if current_user.get("role") not in ("hr", "admin", "ceo"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Staff access required.",
+        )
+    return current_user

@@ -516,13 +516,13 @@ def update_job_with_profile(job_id: int, job_profile: dict):
 # USER AUTHENTICATION CRUD
 # ============================================
 
-def create_user(email: str, hashed_password: str, full_name: str = None) -> int:
-    """Create a new user account."""
+def create_user(email: str, hashed_password: str, full_name: str = None, role: str = "hr") -> int:
+    """Create a new user account. Defaults to 'hr' role."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO users (email, hashed_password, full_name) VALUES (%s, %s, %s) RETURNING id;",
-        (email.strip().lower(), hashed_password, full_name)
+        "INSERT INTO users (email, hashed_password, full_name, role) VALUES (%s, %s, %s, %s) RETURNING id;",
+        (email.strip().lower(), hashed_password, full_name, role)
     )
     user_id = cursor.fetchone()[0]
     conn.commit()
@@ -532,11 +532,11 @@ def create_user(email: str, hashed_password: str, full_name: str = None) -> int:
 
 
 def get_user_by_email(email: str):
-    """Get user by email."""
+    """Get user by email. Returns row: (id, email, hashed_password, full_name, is_active, created_at, role)"""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id, email, hashed_password, full_name, is_active, created_at FROM users WHERE email = %s;",
+        "SELECT id, email, hashed_password, full_name, is_active, created_at, COALESCE(role, 'hr') FROM users WHERE email = %s;",
         (email.strip().lower(),)
     )
     row = cursor.fetchone()
@@ -546,17 +546,75 @@ def get_user_by_email(email: str):
 
 
 def get_user_by_id(user_id: int):
-    """Get user by ID."""
+    """Get user by ID. Returns row: (id, email, hashed_password, full_name, is_active, created_at, role)"""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id, email, hashed_password, full_name, is_active, created_at FROM users WHERE id = %s;",
+        "SELECT id, email, hashed_password, full_name, is_active, created_at, COALESCE(role, 'hr') FROM users WHERE id = %s;",
         (user_id,)
     )
     row = cursor.fetchone()
     cursor.close()
     conn.close()
     return row
+
+
+def get_all_users() -> list:
+    """Return all users except candidates — for CEO user management panel."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id, email, full_name, is_active, created_at, COALESCE(role, 'hr') as role
+        FROM users
+        WHERE COALESCE(role, 'hr') IN ('hr', 'admin', 'ceo')
+        ORDER BY created_at ASC;
+    """)
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return rows
+
+
+def update_user_role(user_id: int, role: str) -> bool:
+    """Update a user's role. Returns True if successful."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE users SET role = %s WHERE id = %s RETURNING id;",
+        (role, user_id)
+    )
+    result = cursor.fetchone()
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return result is not None
+
+
+def update_user_password(user_id: int, hashed_password: str) -> bool:
+    """Update a user's hashed password. Returns True if successful."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE users SET hashed_password = %s WHERE id = %s RETURNING id;",
+        (hashed_password, user_id)
+    )
+    result = cursor.fetchone()
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return result is not None
+
+
+def delete_user_by_id(user_id: int) -> bool:
+    """Hard-delete a user account. Returns True if deleted."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM users WHERE id = %s RETURNING id;", (user_id,))
+    result = cursor.fetchone()
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return result is not None
 
 
 # ============================================

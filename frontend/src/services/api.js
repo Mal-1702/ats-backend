@@ -62,6 +62,15 @@ export const resumesAPI = {
     viewResume: (resumeId) => api.get(`/resumes/${resumeId}/view`, { responseType: 'blob' }),
 };
 
+export const adminAPI = {
+    getUsers: () => api.get('/admin/users'),
+    createUser: (data) => api.post('/admin/users', data),
+    deleteUser: (userId) => api.delete(`/admin/users/${userId}`),
+    updateRole: (userId, role) => api.patch(`/admin/users/${userId}/role`, { role }),
+    resetPassword: (userId, password) => api.patch(`/admin/users/${userId}/password`, { password }),
+};
+
+
 export const rankingAPI = {
     triggerRanking: (jobId) => api.post(`/rank/job/${jobId}`),
     getResults: (jobId) => api.get(`/rank/job/${jobId}`),

@@ -8,6 +8,7 @@ import ResumeList from './pages/ResumeList';
 import ResumeRating from './pages/ResumeRating';
 import RankedCandidates from './pages/RankedCandidates';
 import CandidatePortal from './pages/CandidatePortal';
+import Settings from './pages/Settings';
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {
@@ -27,6 +28,15 @@ const ProtectedRoute = ({ children }) => {
     }
 
     return isAuthenticated ? children : <Navigate to="/login" />;
+};
+
+// CEO-only route — non-CEO authenticated users get redirected to dashboard
+const CeoRoute = ({ children }) => {
+    const { isAuthenticated, user, loading } = useAuth();
+    if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}><div className="spinner" /></div>;
+    if (!isAuthenticated) return <Navigate to="/login" />;
+    if (user?.role !== 'ceo') return <Navigate to="/dashboard" />;
+    return children;
 };
 
 function App() {
@@ -92,6 +102,16 @@ function App() {
 
                     {/* Public Route — No auth required */}
                     <Route path="/apply" element={<CandidatePortal />} />
+
+                    {/* CEO-only Settings */}
+                    <Route
+                        path="/settings"
+                        element={
+                            <CeoRoute>
+                                <Settings />
+                            </CeoRoute>
+                        }
+                    />
 
                     <Route path="/" element={<Navigate to="/dashboard" />} />
                 </Routes>

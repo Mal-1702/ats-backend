@@ -211,3 +211,52 @@
         transform: translateX(0);
     }
 }
+
+/* ─── Role Badge ──────────────────────────────────────────── */
+.role-badge-sidebar {
+    display: inline-block;
+    margin-top: 0.25rem;
+    padding: 0.1rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.badge-ceo {
+    background: rgba(139, 92, 246, 0.2);
+    color: #c4b5fd;
+    border: 1px solid rgba(139, 92, 246, 0.35);
+}
+
+.badge-admin {
+    background: rgba(59, 130, 246, 0.15);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.badge-hr {
+    background: rgba(16, 185, 129, 0.12);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+/* ─── Settings nav link (purple tint for CEO) ─────────────── */
+.sidebar-link--settings {
+    margin-top: 0.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 0.875rem;
+}
+
+.sidebar-link--settings:hover {
+    background: rgba(139, 92, 246, 0.12);
+    color: #c4b5fd;
+}
+
+.sidebar-link--settings.active {
+    background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(79, 70, 229, 0.1));
+    color: #c4b5fd;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
+}
