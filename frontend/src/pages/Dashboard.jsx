@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { jobsAPI, resumesAPI } from '../services/api';
+import { jobsAPI, resumesAPI, dashboardAPI } from '../services/api';
 import Sidebar from '../components/Sidebar';
-import { Briefcase, Users, TrendingUp, Plus, Pencil, Trash2, X } from 'lucide-react';
+import { Briefcase, Users, TrendingUp, Plus, Pencil, Trash2, X, Bell } from 'lucide-react';
 import './Dashboard.css';
+
+const LAST_CHECK_KEY = 'ats_last_dashboard_check';
+const POLL_INTERVAL_MS = 60_000;
 
 const Dashboard = () => {
     const [jobs, setJobs] = useState([]);
@@ -16,8 +19,17 @@ const Dashboard = () => {
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const navigate = useNavigate();
 
+    // ─── New-resume alert state ───────────────────────────────
+    const [newResumeAlert, setNewResumeAlert] = useState(0);
+    const pollRef = useRef(null);
+
     useEffect(() => {
         fetchData();
+        checkNewResumes();   // immediate check on mount
+
+        // Poll every 60 s
+        pollRef.current = setInterval(checkNewResumes, POLL_INTERVAL_MS);
+        return () => clearInterval(pollRef.current);
     }, []);
 
     const fetchData = async () => {
@@ -34,6 +46,28 @@ const Dashboard = () => {
             setLoading(false);
         }
     };
+
+    // ─── New-resume check (server-side count) ─────────────────
+    const checkNewResumes = async () => {
+        try {
+            const since = localStorage.getItem(LAST_CHECK_KEY);
+            const params = since ? { since } : {};
+            const res = await dashboardAPI.getNewResumesCount(params);
+            const { new_resumes, server_time } = res.data;
+
+            // Update the baseline to the server's clock (avoids client drift)
+            localStorage.setItem(LAST_CHECK_KEY, server_time);
+
+            if (new_resumes > 0) {
+                setNewResumeAlert(new_resumes);
+            }
+        } catch {
+            // Alert failure must never break the dashboard
+        }
+    };
+
+    const dismissAlert = () => setNewResumeAlert(0);
+
 
     const handleToggleStatus = async (jobId, newStatus) => {
         try {
@@ -137,6 +171,26 @@ const Dashboard = () => {
                             </button>
                         </div>
 
+                        {/* ── New-resume alert banner ── */}
+                        {newResumeAlert > 0 && (
+                            <div className="new-resume-alert">
+                                <div className="alert-left">
+                                    <Bell size={20} className="alert-bell" />
+                                    <span>
+                                        <strong>{newResumeAlert}</strong> new resume{newResumeAlert > 1 ? 's have' : ' has'} been uploaded since your last visit.
+                                    </span>
+                                </div>
+                                <div className="alert-actions">
+                                    <button className="alert-btn-view" onClick={() => navigate('/resumes')}>
+                                        View Resumes
+                                    </button>
+                                    <button className="alert-btn-dismiss" onClick={dismissAlert} title="Dismiss">
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="stats-grid">
                             {stats.map((stat, index) => (
                                 <div key={index} className="stat-card">
@@ -148,101 +202,101 @@ const Dashboard = () => {
                                 </div>
                             ))}
                         </div>
+                    </div>
 
-                        <div className="jobs-section">
-                            <h2>Recent Jobs</h2>
-                            {loading ? (
-                                <div className="loading-container">
-                                    <div className="spinner" />
-                                </div>
-                            ) : jobs.length === 0 ? (
-                                <div className="empty-state">
-                                    <Briefcase size={48} />
-                                    <h3>No jobs yet</h3>
-                                    <p>Create your first job to start matching candidates</p>
-                                    <button
-                                        className="btn btn-primary mt-2"
-                                        onClick={() => navigate('/jobs/create')}
-                                    >
-                                        <Plus size={18} />
-                                        <span>Create Job</span>
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="jobs-grid">
-                                    {jobs.map((job) => (
-                                        <div key={job.id} className="job-card">
-                                            <div className="job-header">
-                                                <h3>{job.title}</h3>
-                                                <div className="job-status">
-                                                    <span className="status-label">Status:</span>
-                                                    <span className={job.is_active ? 'status-value active' : 'status-value inactive'}>
-                                                        {job.is_active ? 'Active' : 'Inactive'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="job-meta">
-                                                <span className="badge badge-info">
-                                                    {job.min_experience}+ years
+                    <div className="jobs-section">
+                        <h2>Recent Jobs</h2>
+                        {loading ? (
+                            <div className="loading-container">
+                                <div className="spinner" />
+                            </div>
+                        ) : jobs.length === 0 ? (
+                            <div className="empty-state">
+                                <Briefcase size={48} />
+                                <h3>No jobs yet</h3>
+                                <p>Create your first job to start matching candidates</p>
+                                <button
+                                    className="btn btn-primary mt-2"
+                                    onClick={() => navigate('/jobs/create')}
+                                >
+                                    <Plus size={18} />
+                                    <span>Create Job</span>
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="jobs-grid">
+                                {jobs.map((job) => (
+                                    <div key={job.id} className="job-card">
+                                        <div className="job-header">
+                                            <h3>{job.title}</h3>
+                                            <div className="job-status">
+                                                <span className="status-label">Status:</span>
+                                                <span className={job.is_active ? 'status-value active' : 'status-value inactive'}>
+                                                    {job.is_active ? 'Active' : 'Inactive'}
                                                 </span>
-                                                <span className="badge badge-success">
-                                                    {job.skills?.length || 0} skills
-                                                </span>
-                                            </div>
-                                            <div className="job-skills">
-                                                {job.skills?.slice(0, 3).map((skill, idx) => (
-                                                    <span key={idx} className="skill-tag">
-                                                        {skill}
-                                                    </span>
-                                                ))}
-                                                {job.skills?.length > 3 && (
-                                                    <span className="skill-tag">+{job.skills.length - 3}</span>
-                                                )}
-                                            </div>
-                                            <div className="job-footer">
-                                                <span className="job-date">
-                                                    Created {new Date(job.created_at).toLocaleDateString()}
-                                                </span>
-                                                <div className="job-actions">
-                                                    <button
-                                                        className="btn btn-outline btn-sm"
-                                                        onClick={() => navigate(`/jobs/${job.id}/candidates`)}
-                                                    >
-                                                        View Candidates
-                                                    </button>
-                                                    <button
-                                                        className={`btn btn-sm ${job.is_active ? 'btn-danger' : 'btn-success'}`}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleToggleStatus(job.id, !job.is_active);
-                                                        }}
-                                                        title={job.is_active ? 'Mark as Filled' : 'Reopen Position'}
-                                                    >
-                                                        {job.is_active ? 'Mark as Filled' : 'Reopen'}
-                                                    </button>
-                                                    <button
-                                                        className="btn btn-sm btn-edit-skills"
-                                                        onClick={(e) => { e.stopPropagation(); openEditModal(job); }}
-                                                        title="Edit Skills"
-                                                    >
-                                                        <Pencil size={14} />
-                                                        Edit Skills
-                                                    </button>
-                                                    <button
-                                                        className="btn btn-sm btn-delete-job"
-                                                        onClick={(e) => { e.stopPropagation(); setDeleteConfirm(job.id); }}
-                                                        title="Delete Job"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                        Delete
-                                                    </button>
-                                                </div>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                                        <div className="job-meta">
+                                            <span className="badge badge-info">
+                                                {job.min_experience}+ years
+                                            </span>
+                                            <span className="badge badge-success">
+                                                {job.skills?.length || 0} skills
+                                            </span>
+                                        </div>
+                                        <div className="job-skills">
+                                            {job.skills?.slice(0, 3).map((skill, idx) => (
+                                                <span key={idx} className="skill-tag">
+                                                    {skill}
+                                                </span>
+                                            ))}
+                                            {job.skills?.length > 3 && (
+                                                <span className="skill-tag">+{job.skills.length - 3}</span>
+                                            )}
+                                        </div>
+                                        <div className="job-footer">
+                                            <span className="job-date">
+                                                Created {new Date(job.created_at).toLocaleDateString()}
+                                            </span>
+                                            <div className="job-actions">
+                                                <button
+                                                    className="btn btn-outline btn-sm"
+                                                    onClick={() => navigate(`/jobs/${job.id}/candidates`)}
+                                                >
+                                                    View Candidates
+                                                </button>
+                                                <button
+                                                    className={`btn btn-sm ${job.is_active ? 'btn-danger' : 'btn-success'}`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleToggleStatus(job.id, !job.is_active);
+                                                    }}
+                                                    title={job.is_active ? 'Mark as Filled' : 'Reopen Position'}
+                                                >
+                                                    {job.is_active ? 'Mark as Filled' : 'Reopen'}
+                                                </button>
+                                                <button
+                                                    className="btn btn-sm btn-edit-skills"
+                                                    onClick={(e) => { e.stopPropagation(); openEditModal(job); }}
+                                                    title="Edit Skills"
+                                                >
+                                                    <Pencil size={14} />
+                                                    Edit Skills
+                                                </button>
+                                                <button
+                                                    className="btn btn-sm btn-delete-job"
+                                                    onClick={(e) => { e.stopPropagation(); setDeleteConfirm(job.id); }}
+                                                    title="Delete Job"
+                                                >
+                                                    <Trash2 size={14} />
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

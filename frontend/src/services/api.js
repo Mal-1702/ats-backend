@@ -70,6 +70,10 @@ export const adminAPI = {
     resetPassword: (userId, password) => api.patch(`/admin/users/${userId}/password`, { password }),
 };
 
+export const dashboardAPI = {
+    getNewResumesCount: (params = {}) => api.get('/dashboard/new-resumes-count', { params }),
+};
+
 
 export const rankingAPI = {
     triggerRanking: (jobId) => api.post(`/rank/job/${jobId}`),
