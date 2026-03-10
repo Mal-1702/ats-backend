@@ -30,6 +30,15 @@ class Settings(BaseSettings):
     APP_VERSION: str = "2.0.0"
     DEBUG: bool = False
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
+    FRONTEND_URL: str = "http://localhost:3000"
+
+    # SMTP / Emails
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    EMAILS_FROM_EMAIL: str = "noreply@ats.internal"
+    EMAILS_FROM_NAME: str = "Enterprise ATS"
 
     # File Upload
     UPLOAD_DIR: str = "uploads"

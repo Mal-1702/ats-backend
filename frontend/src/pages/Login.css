@@ -201,6 +201,23 @@
 }
 
 /* Submit Button */
+.forgot-password-container {
+    text-align: right;
+    margin-top: -10px;
+    margin-bottom: 20px;
+}
+
+.forgot-password-container a {
+    color: var(--text-muted);
+    font-size: 0.813rem;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.forgot-password-container a:hover {
+    color: var(--neon-blue);
+}
+
 .login-button {
     width: 100%;
     padding: 1rem;

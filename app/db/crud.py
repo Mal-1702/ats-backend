@@ -1,5 +1,6 @@
 from app.db.dbase import get_db_connection
 from typing import List, Tuple, Optional
+from datetime import datetime
 from app.models.job import JobCreate
 from app.services.scorer import extract_years_of_experience
 from app.services.resume_parser import parse_resume
@@ -894,3 +895,54 @@ def bulk_delete_resumes(resume_ids: list) -> dict:
     cur.close()
     conn.close()
     return {"deleted": found_ids, "not_found": not_found}
+
+
+# ── Password Reset Functions ──────────────────────────────
+
+def create_password_reset_token(user_id: int, token: str, expires_at: datetime):
+    """Store a secure reset token for a user."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO password_reset_tokens (user_id, token, expires_at)
+        VALUES (%s, %s, %s);
+    """, (user_id, token, expires_at))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def get_password_reset_token(token: str):
+    """Retrieve user_id and expiry for a given token."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT user_id, expires_at FROM password_reset_tokens
+        WHERE token = %s;
+    """, (token,))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+    return row
+
+
+def delete_password_reset_token(token: str):
+    """Remove a token after use or expiry."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM password_reset_tokens WHERE token = %s;", (token,))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def update_user_password(user_id: int, hashed_password: str):
+    """Update a user's password in the users table."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE users SET hashed_password = %s WHERE id = %s;
+    """, (hashed_password, user_id))
+    conn.commit()
+    cur.close()
+    conn.close()

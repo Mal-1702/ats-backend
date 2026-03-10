@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import JobCreate from './pages/JobCreate';
 import ResumeUpload from './pages/ResumeUpload';
@@ -41,10 +43,12 @@ const CeoRoute = ({ children }) => {
 
 function App() {
     return (
-        <BrowserRouter>
-            <AuthProvider>
+        <AuthProvider>
+            <BrowserRouter>
                 <Routes>
                     <Route path="/login" element={<Login />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
 
                     <Route
                         path="/dashboard"
@@ -115,8 +119,8 @@ function App() {
 
                     <Route path="/" element={<Navigate to="/dashboard" />} />
                 </Routes>
-            </AuthProvider>
-        </BrowserRouter>
+            </BrowserRouter>
+        </AuthProvider>
     );
 }
 

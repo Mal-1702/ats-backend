@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogIn, UserPlus } from 'lucide-react';
 import './Login.css';
@@ -201,6 +201,15 @@ const Login = () => {
                                 <span className="field-error">{validationErrors.password}</span>
                             )}
                         </div>
+
+                        {/* Forgot Password Link */}
+                        {isLogin && (
+                            <div className="forgot-password-container">
+                                <Link to="/forgot-password" title="Click here to reset your password">
+                                    Forgot Password?
+                                </Link>
+                            </div>
+                        )}
 
                         {/* Confirm Password — signup only */}
                         {!isLogin && (

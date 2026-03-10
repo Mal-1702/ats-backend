@@ -1,7 +1,22 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from datetime import timedelta
-from app.models.user import UserRegister, UserLogin, UserOut, TokenOut
-from app.db.crud import create_user, get_user_by_email, get_user_by_id
+from app.models.user import (
+    UserRegister, 
+    UserLogin, 
+    UserOut, 
+    TokenOut, 
+    ForgotPasswordRequest, 
+    ResetPasswordRequest
+)
+from app.db.crud import (
+    create_user, 
+    get_user_by_email, 
+    get_user_by_id,
+    create_password_reset_token,
+    get_password_reset_token,
+    delete_password_reset_token,
+    update_user_password
+)
 from app.core.security import (
     hash_password,
     verify_password,
@@ -9,6 +24,9 @@ from app.core.security import (
     get_current_user,
 )
 from app.core.config import get_settings
+from app.services.email import send_reset_password_email
+import secrets
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter()
 settings = get_settings()
@@ -104,3 +122,59 @@ def get_me(current_user: dict = Depends(get_current_user)):
             detail="User not found",
         )
     return _row_to_user_out(user_row)
+
+
+@router.post("/auth/forgot-password", tags=["Auth"])
+def forgot_password(payload: ForgotPasswordRequest):
+    """
+    Generate a password reset token and send it via email.
+    Always returns success to prevent email enumeration.
+    """
+    user_row = get_user_by_email(payload.email)
+    
+    if user_row:
+        user_id = user_row[0]
+        token = secrets.token_urlsafe(32)
+        # 15 minutes expiry
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
+        
+        create_password_reset_token(user_id, token, expires_at)
+        send_reset_password_email(payload.email, token)
+
+    return {"message": "If this email exists, a password reset link has been sent."}
+
+
+@router.post("/auth/reset-password", tags=["Auth"])
+def reset_password(payload: ResetPasswordRequest):
+    """
+    Verify the reset token and update the user's password.
+    """
+    token_row = get_password_reset_token(payload.token)
+    
+    if not token_row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid or expired reset token"
+        )
+    
+    user_id, expires_at = token_row
+    
+    # Check expiry
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    if datetime.now(timezone.utc) > expires_at:
+        delete_password_reset_token(payload.token)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset token has expired"
+        )
+    
+    # Securely update password
+    hashed = hash_password(payload.password)
+    update_user_password(user_id, hashed)
+    
+    # Delete token after successful use
+    delete_password_reset_token(payload.token)
+    
+    return {"message": "Password updated successfully"}

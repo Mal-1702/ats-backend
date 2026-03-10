@@ -97,3 +97,28 @@ class UserUpdateRole(BaseModel):
 class UserUpdatePassword(BaseModel):
     """CEO-only: reset a user's password."""
     password: str
+
+
+# ── Password Reset Models ───────────────────────────────────
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    password: str
+    confirm_password: str
+
+    @field_validator("password", mode="before")
+    @classmethod
+    def validate_password_length(cls, v):
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        return v
+
+    @model_validator(mode="after")
+    def passwords_match(self):
+        if self.password != self.confirm_password:
+            raise ValueError("Passwords do not match")
+        return self

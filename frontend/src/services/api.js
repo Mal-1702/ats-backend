@@ -32,6 +32,8 @@ export const authAPI = {
     register: (data) => api.post('/auth/register', data),
     login: (data) => api.post('/auth/login', data),
     getCurrentUser: () => api.get('/auth/me'),
+    forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+    resetPassword: (payload) => api.post('/auth/reset-password', payload),
 };
 
 export const jobsAPI = {
