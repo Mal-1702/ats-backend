@@ -51,7 +51,7 @@ def decode_token(token: str) -> dict:
 
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
-    """Return {user_id, email, role} from the JWT payload."""
+    """Return {user_id, email, role, full_name} from the JWT payload."""
     payload = decode_token(token)
     user_id = payload.get("sub")
     if user_id is None:
@@ -61,9 +61,10 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
             headers={"WWW-Authenticate": "Bearer"},
         )
     return {
-        "user_id": int(user_id),
-        "email": payload.get("email"),
-        "role": payload.get("role", "hr"),   # backward-compat: old tokens without role → default hr
+        "user_id":   int(user_id),
+        "email":     payload.get("email"),
+        "role":      payload.get("role", "hr"),
+        "full_name": payload.get("name", ""),   # decoded from 'name' JWT claim
     }
 
 

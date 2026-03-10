@@ -41,6 +41,13 @@ export const jobsAPI = {
     toggleStatus: (jobId, isActive) => api.patch(`/jobs/${jobId}/status`, null, { params: { is_active: isActive } }),
     delete: (jobId) => api.delete(`/jobs/${jobId}`),
     updateSkills: (jobId, skills) => api.patch(`/jobs/${jobId}/skills`, { skills }),
+    uploadResumes: (jobId, files) => {
+        const formData = new FormData();
+        Array.from(files).forEach(file => formData.append('files', file));
+        return api.post(`/jobs/${jobId}/upload-resumes`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
 };
 
 export const uploadAPI = {

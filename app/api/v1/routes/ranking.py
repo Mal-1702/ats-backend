@@ -289,12 +289,17 @@ def get_job_shortlist(
         bonus_skills      = insights.get("bonus_skills", [])     if insights else []
         candidate_skills  = insights.get("candidate_skills", {}) if insights else {}
 
+        upload_source      = r[6] if len(r) > 6 else "candidate_portal"
+        uploaded_by_name    = r[7] if len(r) > 7 else None
+
         candidate = {
             "resume_id":          resume_id,
             "candidate_filename": filename,
             "final_score":        score,
             "tier":               tier,
             "ranked_at":          ranked_at,
+            "upload_source":      upload_source,
+            "uploaded_by_name":    uploaded_by_name,
             # Score breakdown bars
             "breakdown": breakdown or {
                 "skill_match":      0,

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, status
+import fastapi
 from app.models.job import JobCreate, JobOut, SkillWithPriority, priority_to_level
 from app.db.crud import (
     insert_job,
@@ -168,4 +169,71 @@ def update_skills_endpoint(
         "message": "Skills updated successfully",
         "job_id":  job_id,
         "skills":  skills,
+    }
+@router.post("/jobs/{job_id}/upload-resumes", tags=["Jobs"])
+async def upload_resumes_to_job(
+    job_id: int,
+    files: List[fastapi.UploadFile] = fastapi.File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    [HR/Admin] Upload multiple resumes directly to a job.
+    Stores uploader identity and links resumes to the job pool.
+    """
+    from app.db.crud import insert_resume, link_manual_resume_to_job
+    from app.workers.tasks import process_resume_task
+    import os
+
+    # 1. Validate Job
+    job = get_job_by_id(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    ALLOWED_EXTENSIONS = {"pdf", "docx"}
+    UPLOAD_DIR = "uploads"
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+    results = []
+    for file in files:
+        filename = file.filename
+        if not filename or "." not in filename:
+            results.append({"filename": filename, "status": "failed", "detail": "Invalid filename"})
+            continue
+
+        ext = filename.rsplit(".", 1)[-1].lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            results.append({"filename": filename, "status": "failed", "detail": "Invalid extension"})
+            continue
+
+        # Save file
+        file_path = os.path.join(UPLOAD_DIR, filename)
+        try:
+            contents = await file.read()
+            with open(file_path, "wb") as f:
+                f.write(contents)
+            
+            # Record in DB
+            resume_id = insert_resume(
+                filename=filename,
+                uploaded_by_user_id=current_user.get("user_id"),
+                uploaded_by_name=current_user.get("full_name"),
+                upload_source="hr_manual_upload"
+            )
+
+            # Link to Job
+            link_manual_resume_to_job(job_id, resume_id)
+
+            # Trigger Background Processing
+            process_resume_task.delay(resume_id, file_path)
+
+            results.append({"filename": filename, "status": "uploaded", "resume_id": resume_id})
+        except Exception as e:
+            results.append({"filename": filename, "status": "failed", "detail": str(e)})
+        finally:
+            await file.close()
+
+    return {
+        "job_id": job_id,
+        "results": results,
+        "message": f"Processed {len(files)} file(s)"
     }

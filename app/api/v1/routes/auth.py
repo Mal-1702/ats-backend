@@ -75,12 +75,14 @@ def login(credentials: UserLogin):
         )
 
     role = user_row[6] if len(user_row) > 6 else "hr"
+    full_name = user_row[3] if len(user_row) > 3 else ""
 
     token = create_access_token(
         data={
             "sub": str(user_row[0]),
             "email": user_row[1],
-            "role": role,           # ← role now included in JWT
+            "role": role,
+            "name": full_name,      # ← full_name now included in JWT
         },
         expires_delta=timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES),
     )

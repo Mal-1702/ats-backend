@@ -4,13 +4,32 @@ from app.models.job import JobCreate
 from app.services.scorer import extract_years_of_experience
 from app.services.resume_parser import parse_resume
 import json
+import hashlib
+import os
 
 
-def insert_resume(filename: str):
+def _calculate_file_hash(filepath: str) -> str:
+    """Calculate SHA-256 hash of a file."""
+    sha256_hash = hashlib.sha256()
+    try:
+        with open(filepath, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
+        return sha256_hash.hexdigest()
+    except Exception:
+        return None
+
+def insert_resume(
+    filename: str,
+    uploaded_by_user_id: Optional[int] = None,
+    uploaded_by_name: Optional[str] = None,
+    upload_source: str = "candidate_portal"
+):
     conn = get_db_connection()
     cursor = conn.cursor()
 
     path = f"uploads/{filename}"
+    file_hash = _calculate_file_hash(path)
 
     try:
         text = parse_resume(path)
@@ -20,12 +39,18 @@ def insert_resume(filename: str):
     experience = extract_years_of_experience(text)
 
     query = """
-        INSERT INTO resumes (filename, experience_years, parsed_text)
-        VALUES (%s, %s, %s)
+        INSERT INTO resumes (
+            filename, experience_years, parsed_text, 
+            uploaded_by_user_id, uploaded_by_name, upload_source, file_hash
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
         RETURNING id;
     """
 
-    cursor.execute(query, (filename, experience, text))
+    cursor.execute(query, (
+        filename, experience, text, 
+        uploaded_by_user_id, uploaded_by_name, upload_source, file_hash
+    ))
     resume_id = cursor.fetchone()[0]
 
     conn.commit()
@@ -49,7 +74,7 @@ def get_all_resumes(
 
     # Build the base query with dynamic ranking
     base_query = """
-        SELECT id, filename, uploaded_at, experience_years, extracted_skills
+        SELECT id, filename, uploaded_at, experience_years, extracted_skills, uploaded_by_name, upload_source
     """
     
     # Ranking logic
@@ -353,7 +378,9 @@ def get_rankings_for_job(job_id: int):
             r.score,
             r.created_at,
             r.breakdown,
-            r.insights
+            r.insights,
+            res.upload_source,
+            res.uploaded_by_name
         FROM rankings r
         JOIN resumes res ON r.resume_id = res.id
         WHERE r.job_id = %s
@@ -389,7 +416,7 @@ def get_resume_by_id(resume_id: int):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id, filename, uploaded_at, experience_years, extracted_skills, profile_data, parsed_text FROM resumes WHERE id = %s",
+        "SELECT id, filename, uploaded_at, experience_years, extracted_skills, profile_data, parsed_text, uploaded_by_name, upload_source FROM resumes WHERE id = %s",
         (resume_id,)
     )
     row = cursor.fetchone()
@@ -757,7 +784,29 @@ def get_open_jobs():
     return rows
 
 
-def insert_application(job_id: int, resume_id: int, candidate_name: str, candidate_email: str) -> int:
+def link_manual_resume_to_job(job_id: int, resume_id: int):
+    """
+    Link an HR-uploaded resume to a specific job.
+    Inserts a record into the 'applications' table so it appears in candidate views.
+    """
+    resume = get_resume_by_id(resume_id)
+    # resume row: (id, filename, uploaded_at, experience_years, extracted_skills, profile_data, parsed_text)
+    
+    # Try to extract name/email from parsed_text if possible (simple heuristic)
+    # For now, we'll use "HR Upload" placeholder as required by non-nullable columns
+    # unless we want to do more complex extraction here.
+    candidate_name = "HR Upload"
+    candidate_email = f"manual_{resume_id}@ats.internal"
+
+    return insert_application(
+        job_id=job_id,
+        resume_id=resume_id,
+        candidate_name=candidate_name,
+        candidate_email=candidate_email
+    )
+
+
+def insert_application(job_id: int, resume_id: int, candidate_name: str, candidate_email: str):
     """Insert a new candidate application and return the application ID."""
     conn = get_db_connection()
     cur = conn.cursor()
@@ -778,7 +827,7 @@ def get_resumes_by_job(job_id: int):
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT r.id, r.filename, r.uploaded_at, r.experience_years, r.extracted_skills
+        SELECT r.id, r.filename, r.uploaded_at, r.experience_years, r.extracted_skills, r.uploaded_by_name, r.upload_source
         FROM resumes r
         INNER JOIN applications a ON a.resume_id = r.id
         WHERE a.job_id = %s

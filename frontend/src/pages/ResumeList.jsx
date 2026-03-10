@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { resumesAPI } from '../services/api';
 import Sidebar from '../components/Sidebar';
-import { Trash2, FileText, AlertCircle, Download, Eye, Search, Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trash2, FileText, AlertCircle, Download, Eye, Search, Filter, X, ChevronDown, ChevronUp, Users, Plus } from 'lucide-react';
 import './ResumeList.css';
 
 const ResumeList = () => {
@@ -384,6 +384,10 @@ const ResumeList = () => {
                                                     <div className="resume-meta">
                                                         <span className="resume-date">
                                                             {new Date(resume.uploaded_at).toLocaleDateString()}
+                                                        </span>
+                                                        <span className={`uploader-meta ${resume.upload_source}`}>
+                                                            {resume.upload_source === 'hr_manual_upload' ? <Plus size={12} /> : <Users size={12} />}
+                                                            {resume.uploaded_by_name || (resume.upload_source === 'hr_manual_upload' ? 'HR Upload' : 'Candidate Portal')}
                                                         </span>
                                                     </div>
                                                 </div>

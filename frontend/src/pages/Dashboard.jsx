@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jobsAPI, resumesAPI, dashboardAPI } from '../services/api';
 import Sidebar from '../components/Sidebar';
-import { Briefcase, Users, TrendingUp, Plus, Pencil, Trash2, X, Bell } from 'lucide-react';
+import { Briefcase, Users, TrendingUp, Plus, Pencil, Trash2, X, Bell, Upload, CheckCircle, AlertCircle } from 'lucide-react';
 import './Dashboard.css';
 
 const LAST_CHECK_KEY = 'ats_last_dashboard_check';
@@ -17,6 +17,10 @@ const Dashboard = () => {
     const [newSkill, setNewSkill] = useState('');
     const [editLoading, setEditLoading] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
+    const [uploadJob, setUploadJob] = useState(null);
+    const [uploadFiles, setUploadFiles] = useState([]);
+    const [uploading, setUploading] = useState(false);
+    const [uploadStatus, setUploadStatus] = useState(null); // { type: 'success'|'error', message: string }
     const navigate = useNavigate();
 
     // ─── New-resume alert state ───────────────────────────────
@@ -125,6 +129,40 @@ const Dashboard = () => {
             fetchData();
         } catch (error) {
             console.error('Failed to delete job:', error);
+        }
+    };
+
+    // -------- UPLOAD RESUMES --------
+    const openUploadModal = (job) => {
+        setUploadJob(job);
+        setUploadFiles([]);
+        setUploadStatus(null);
+    };
+
+    const closeUploadModal = () => {
+        if (uploading) return;
+        setUploadJob(null);
+        setUploadFiles([]);
+        setUploadStatus(null);
+    };
+
+    const handleFileUpload = async (e) => {
+        e.preventDefault();
+        if (!uploadFiles || uploadFiles.length === 0) return;
+
+        setUploading(true);
+        setUploadStatus(null);
+
+        try {
+            await jobsAPI.uploadResumes(uploadJob.id, uploadFiles);
+            setUploadStatus({ type: 'success', message: `Successfully uploaded ${uploadFiles.length} resume(s)! Processing in background.` });
+            setUploadFiles([]);
+            fetchData();
+            setTimeout(closeUploadModal, 2000);
+        } catch (error) {
+            setUploadStatus({ type: 'error', message: error.response?.data?.detail || 'Failed to upload resumes.' });
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -266,6 +304,14 @@ const Dashboard = () => {
                                                     View Candidates
                                                 </button>
                                                 <button
+                                                    className="btn btn-outline btn-sm btn-upload-manual"
+                                                    onClick={(e) => { e.stopPropagation(); openUploadModal(job); }}
+                                                    title="Add Resumes Manually"
+                                                >
+                                                    <Upload size={14} />
+                                                    Add Resume
+                                                </button>
+                                                <button
                                                     className={`btn btn-sm ${job.is_active ? 'btn-danger' : 'btn-success'}`}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -386,6 +432,75 @@ const Dashboard = () => {
                                 <Trash2 size={14} /> Delete Job
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── UPLOAD RESUME MODAL ── */}
+            {uploadJob && (
+                <div className="modal-overlay" onClick={closeUploadModal}>
+                    <div className="modal-box" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Add Resumes — {uploadJob.title}</h3>
+                            <button className="modal-close" onClick={closeUploadModal} disabled={uploading}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleFileUpload}>
+                            <div className="modal-body">
+                                <p className="upload-hint">Upload PDF or DOCX resumes directly to this job pool.</p>
+
+                                <div className="file-input-container">
+                                    <label className="file-drop-zone">
+                                        <Upload size={32} />
+                                        <span>Click to browse or drag files here</span>
+                                        <input
+                                            type="file"
+                                            multiple
+                                            accept=".pdf,.docx"
+                                            onChange={(e) => setUploadFiles(e.target.files)}
+                                            style={{ display: 'none' }}
+                                        />
+                                    </label>
+                                </div>
+
+                                {uploadFiles.length > 0 && (
+                                    <div className="selected-files">
+                                        <h4>Selected Files ({uploadFiles.length})</h4>
+                                        <ul>
+                                            {Array.from(uploadFiles).map((file, idx) => (
+                                                <li key={idx}>
+                                                    <Briefcase size={14} />
+                                                    <span>{file.name}</span>
+                                                    <span className="file-size">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {uploadStatus && (
+                                    <div className={`upload-status ${uploadStatus.type}`}>
+                                        {uploadStatus.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+                                        <span>{uploadStatus.message}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-outline" onClick={closeUploadModal} disabled={uploading}>
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary"
+                                    disabled={uploading || Array.from(uploadFiles).length === 0}
+                                >
+                                    {uploading ? <div className="spinner" style={{ width: 18, height: 18 }} /> : 'Upload Resumes'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

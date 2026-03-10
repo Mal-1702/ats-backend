@@ -1,6 +1,6 @@
 import {
     Award, TrendingUp, AlertTriangle, ChevronDown, ChevronUp,
-    CheckCircle, XCircle, Star, BarChart2, Layers, Brain
+    CheckCircle, XCircle, Star, BarChart2, Layers, Brain, Users, Plus
 } from 'lucide-react';
 import './CandidateCard.css';
 
@@ -101,6 +101,17 @@ const CandidateCard = ({ candidate, rank, isExpanded, onToggle, skillPriorities 
                         {breakdown.experience_years > 0 && (
                             <span className="exp-badge">
                                 {breakdown.experience_years} yrs exp
+                            </span>
+                        )}
+                        {candidate.upload_source === 'hr_manual_upload' ? (
+                            <span className="uploader-badge manual">
+                                <Plus size={12} />
+                                {candidate.uploaded_by_name || 'HR Upload'}
+                            </span>
+                        ) : (
+                            <span className="uploader-badge portal">
+                                <Users size={12} />
+                                {candidate.uploaded_by_name || 'Candidate Portal'}
                             </span>
                         )}
                     </div>

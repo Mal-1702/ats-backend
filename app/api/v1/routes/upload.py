@@ -41,7 +41,11 @@ async def upload_resume(
 
     # Insert resume metadata into database (non-blocking — parse errors won't fail the upload)
     try:
-        resume_id = insert_resume(filename)
+        resume_id = insert_resume(
+            filename,
+            upload_source="candidate_portal",
+            uploaded_by_name="Candidate Portal",
+        )
     except Exception as e:
         # If DB insert fails, remove the uploaded file
         if os.path.exists(file_path):

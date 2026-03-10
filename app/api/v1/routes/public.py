@@ -98,7 +98,11 @@ async def submit_application(
 
     # ── Insert resume (runs existing parsing pipeline) ────────
     try:
-        resume_id = insert_resume(stored_filename)
+        resume_id = insert_resume(
+            stored_filename,
+            upload_source="candidate_portal",
+            uploaded_by_name="Candidate Portal",
+        )
     except Exception as e:
         if os.path.exists(file_path):
             os.remove(file_path)
