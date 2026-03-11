@@ -4,8 +4,6 @@ import { rankingAPI, jobsAPI } from '../services/api';
 import Sidebar from '../components/Sidebar';
 import CandidateCard from '../components/CandidateCard';
 import { Users, TrendingUp, Loader, AlertCircle } from 'lucide-react';
-import Skeleton from 'react-loading-skeleton';
-import 'react-loading-skeleton/dist/skeleton.css';
 import './RankedCandidates.css';
 
 const RankedCandidates = () => {
@@ -75,16 +73,7 @@ const RankedCandidates = () => {
                 <Sidebar />
                 <div className="dashboard-main">
                     <div className="container">
-                        <div className="candidates-header">
-                            <Skeleton width={300} height={40} />
-                            <Skeleton width={150} height={40} />
-                        </div>
-                        <div className="rankings-summary">
-                            <Skeleton height={100} count={3} inline style={{ marginRight: '1rem', flex: 1 }} containerClassName="rankings-summary" />
-                        </div>
-                        <div className="candidates-list">
-                            <Skeleton height={80} count={5} style={{ marginBottom: '1rem' }} />
-                        </div>
+                        <div className="spinner-large"></div>
                     </div>
                 </div>
             </div>

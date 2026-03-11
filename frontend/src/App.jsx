@@ -10,21 +10,7 @@ import ResumeList from './pages/ResumeList';
 import ResumeRating from './pages/ResumeRating';
 import RankedCandidates from './pages/RankedCandidates';
 import CandidatePortal from './pages/CandidatePortal';
-import { AnimatePresence, motion } from 'framer-motion';
-import AnimatedBackground from './components/AnimatedBackground';
 import Settings from './pages/Settings';
-
-// Page Transition Wrapper
-const PageTransition = ({ children }) => (
-    <motion.div
-        initial={{ opacity: 0, y: 10, scale: 0.99 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -10, scale: 0.99 }}
-        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-    >
-        {children}
-    </motion.div>
-);
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {
@@ -58,82 +44,81 @@ const CeoRoute = ({ children }) => {
 function App() {
     return (
         <AuthProvider>
-            <AnimatedBackground />
             <BrowserRouter>
-                <AnimatePresence mode="wait">
-                    <Routes>
-                        <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
-                        <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
-                        <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
+                <Routes>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
 
-                        <Route
-                            path="/dashboard"
-                            element={
-                                <ProtectedRoute>
-                                    <PageTransition><Dashboard /></PageTransition>
-                                </ProtectedRoute>
-                            }
-                        />
+                    <Route
+                        path="/dashboard"
+                        element={
+                            <ProtectedRoute>
+                                <Dashboard />
+                            </ProtectedRoute>
+                        }
+                    />
 
-                        <Route
-                            path="/jobs/create"
-                            element={
-                                <ProtectedRoute>
-                                    <PageTransition><JobCreate /></PageTransition>
-                                </ProtectedRoute>
-                            }
-                        />
+                    <Route
+                        path="/jobs/create"
+                        element={
+                            <ProtectedRoute>
+                                <JobCreate />
+                            </ProtectedRoute>
+                        }
+                    />
 
-                        <Route
-                            path="/upload"
-                            element={
-                                <ProtectedRoute>
-                                    <PageTransition><ResumeUpload /></PageTransition>
-                                </ProtectedRoute>
-                            }
-                        />
+                    <Route
+                        path="/upload"
+                        element={
+                            <ProtectedRoute>
+                                <ResumeUpload />
+                            </ProtectedRoute>
+                        }
+                    />
 
-                        <Route
-                            path="/resumes"
-                            element={
-                                <ProtectedRoute>
-                                    <PageTransition><ResumeList /></PageTransition>
-                                </ProtectedRoute>
-                            }
-                        />
+                    <Route
+                        path="/resumes"
+                        element={
+                            <ProtectedRoute>
+                                <ResumeList />
+                            </ProtectedRoute>
+                        }
+                    />
 
-                        <Route
-                            path="/rate-resume"
-                            element={
-                                <ProtectedRoute>
-                                    <PageTransition><ResumeRating /></PageTransition>
-                                </ProtectedRoute>
-                            }
-                        />
+                    <Route
+                        path="/rate-resume"
+                        element={
+                            <ProtectedRoute>
+                                <ResumeRating />
+                            </ProtectedRoute>
+                        }
+                    />
 
-                        <Route
-                            path="/jobs/:jobId/candidates"
-                            element={
-                                <ProtectedRoute>
-                                    <PageTransition><RankedCandidates /></PageTransition>
-                                </ProtectedRoute>
-                            }
-                        />
+                    <Route
+                        path="/jobs/:jobId/candidates"
+                        element={
+                            <ProtectedRoute>
+                                <RankedCandidates />
+                            </ProtectedRoute>
+                        }
+                    />
 
-                        <Route path="/apply" element={<PageTransition><CandidatePortal /></PageTransition>} />
+                    {/* Public Route — No auth required */}
+                    <Route path="/apply" element={<CandidatePortal />} />
 
-                        <Route
-                            path="/settings"
-                            element={
-                                <CeoRoute>
-                                    <PageTransition><Settings /></PageTransition>
-                                </CeoRoute>
-                            }
-                        />
+                    {/* CEO-only Settings */}
+                    <Route
+                        path="/settings"
+                        element={
+                            <CeoRoute>
+                                <Settings />
+                            </CeoRoute>
+                        }
+                    />
 
-                        <Route path="/" element={<Navigate to="/dashboard" />} />
-                    </Routes>
-                </AnimatePresence>
+                    <Route path="/" element={<Navigate to="/dashboard" />} />
+                </Routes>
             </BrowserRouter>
         </AuthProvider>
     );
