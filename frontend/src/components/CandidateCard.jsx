@@ -2,6 +2,7 @@ import {
     Award, TrendingUp, AlertTriangle, ChevronDown, ChevronUp,
     CheckCircle, XCircle, Star, BarChart2, Layers, Brain, Users, Plus
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import './CandidateCard.css';
 
 /**
@@ -77,7 +78,13 @@ const CandidateCard = ({ candidate, rank, isExpanded, onToggle, skillPriorities 
     };
 
     return (
-        <div className="candidate-card">
+        <motion.div 
+            layout
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileHover={{ y: -5 }}
+            className={`candidate-card ${getTierColor(candidate.tier)}`}
+        >
             {/* ── Header ─────────────────────────────────── */}
             <div className="candidate-header">
                 <div className="candidate-rank" aria-hidden="true">#{rank}</div>
@@ -90,9 +97,13 @@ const CandidateCard = ({ candidate, rank, isExpanded, onToggle, skillPriorities 
                         <span className={`tier-badge ${getTierColor(candidate.tier)}`}>
                             Tier {candidate.tier || '—'}
                         </span>
-                        <span className={`score-badge ${getScoreColor(candidate.final_score ?? 0)}`}>
-                            {candidate.final_score ?? 0}/100
-                        </span>
+                        <div className={`score-ring ${getScoreColor(candidate.final_score ?? 0)}`}>
+                            <svg viewBox="0 0 36 36">
+                                <path className="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                <path className="ring-fill" strokeDasharray={`${candidate.final_score ?? 0}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                <text x="18" y="20.35" className="ring-text">{candidate.final_score ?? 0}</text>
+                            </svg>
+                        </div>
                         {candidate.recommendation && (
                             <span className={`rec-badge ${recClass(candidate.recommendation)}`}>
                                 {candidate.recommendation}
@@ -302,7 +313,7 @@ const CandidateCard = ({ candidate, rank, isExpanded, onToggle, skillPriorities 
 
                 </div>
             )}
-        </div>
+        </motion.div>
     );
 };
 

@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { jobsAPI, resumesAPI, dashboardAPI } from '../services/api';
 import Sidebar from '../components/Sidebar';
 import { Briefcase, Users, TrendingUp, Plus, Pencil, Trash2, X, Bell, Upload, CheckCircle, AlertCircle } from 'lucide-react';
+import CountUp from 'react-countup';
+import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 import './Dashboard.css';
 
 const LAST_CHECK_KEY = 'ats_last_dashboard_check';
@@ -235,18 +238,41 @@ const Dashboard = () => {
                                     <div className={`stat-icon ${stat.color}`}>{stat.icon}</div>
                                     <div className="stat-content">
                                         <div className="stat-label">{stat.title}</div>
-                                        <div className="stat-value">{stat.value}</div>
+                                        <div className="stat-value">
+                                            <CountUp end={stat.value} duration={2} separator="," />
+                                        </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                    </div>
 
-                    <div className="jobs-section">
-                        <h2>Recent Jobs</h2>
+                        <div className="dashboard-grid-main">
+                            <div className="jobs-section">
+                                <h2>Recent Jobs</h2>
                         {loading ? (
-                            <div className="loading-container">
-                                <div className="spinner" />
+                            <div className="jobs-grid">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="job-card skeleton-card">
+                                        <div className="job-header">
+                                            <Skeleton width={200} height={24} />
+                                            <Skeleton width={100} height={20} />
+                                        </div>
+                                        <div className="job-meta">
+                                            <Skeleton width={80} height={24} borderRadius={20} />
+                                            <Skeleton width={80} height={24} borderRadius={20} />
+                                        </div>
+                                        <div className="job-skills">
+                                            <Skeleton width={60} height={28} count={3} inline style={{ marginRight: 8 }} />
+                                        </div>
+                                        <div className="job-footer">
+                                            <Skeleton width={120} height={16} />
+                                            <div className="job-actions">
+                                                <Skeleton width={100} height={32} />
+                                                <Skeleton width={100} height={32} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         ) : jobs.length === 0 ? (
                             <div className="empty-state">
@@ -341,8 +367,39 @@ const Dashboard = () => {
                                         </div>
                                     </div>
                                 ))}
+                                </div>
+                            )}
                             </div>
-                        )}
+
+                            <aside className="activity-feed">
+                                <h2>System Activity</h2>
+                                <div className="activity-list">
+                                    <div className="activity-item">
+                                        <div className="activity-dot success"></div>
+                                        <div className="activity-info">
+                                            <p className="activity-text"><strong>AI Engine</strong> is online and monitoring</p>
+                                            <span className="activity-time">Just now</span>
+                                        </div>
+                                    </div>
+                                    {jobs.slice(0, 3).map(job => (
+                                        <div key={job.id} className="activity-item">
+                                            <div className="activity-dot primary"></div>
+                                            <div className="activity-info">
+                                                <p className="activity-text">New position <strong>{job.title}</strong> created</p>
+                                                <span className="activity-time">{new Date(job.created_at).toLocaleDateString()}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div className="activity-item">
+                                        <div className="activity-dot warning"></div>
+                                        <div className="activity-info">
+                                            <p className="activity-text">Database sync completed</p>
+                                            <span className="activity-time">2 hours ago</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </aside>
+                        </div>
                     </div>
                 </div>
             </div>

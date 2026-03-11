@@ -1,48 +1,47 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Dark Background System */
-  --bg-primary: #0f0f14;
-  --bg-secondary: #1a1a24;
-  --bg-tertiary: #242433;
-  --bg-elevated: #2d2d3f;
+  /* Dark Background System - More sophisticated shades */
+  --bg-primary: #020617;
+  --bg-secondary: #0f172a;
+  --bg-tertiary: #1e293b;
+  --bg-elevated: rgba(255, 255, 255, 0.03);
 
-  /* Neon Accent System */
-  --neon-blue: #3b82f6;
-  --neon-blue-dark: #2563eb;
-  --neon-cyan: #06b6d4;
-  --neon-purple: #8b5cf6;
-  --neon-glow: rgba(59, 130, 246, 0.3);
-  --neon-glow-strong: rgba(59, 130, 246, 0.5);
+  /* Neon Accent System - Vibrant AI Palette */
+  --neon-blue: #38bdf8;
+  --neon-blue-dark: #0284c7;
+  --neon-cyan: #22d3ee;
+  --neon-purple: #a855f7;
+  --neon-pink: #f472b6;
+  --neon-glow: rgba(56, 189, 248, 0.2);
+  --neon-glow-strong: rgba(56, 189, 248, 0.4);
 
-  /* Text Colors */
+  /* Text Colors - High Contrast */
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
+  --text-accent: #38bdf8;
 
-  /* Legacy Variables (for compatibility) */
-  --primary: #3b82f6;
-  --primary-dark: #2563eb;
-  --primary-light: #60a5fa;
-  --secondary: #10b981;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --dark: #f8fafc;
-  --gray: #94a3b8;
-  --light-gray: #2d2d3f;
-  --white: #1a1a24;
-  --border: rgba(255, 255, 255, 0.1);
-
+  /* Glassmorphism - Premium Linear Style */
+  --glass-bg: rgba(15, 23, 42, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-bright: rgba(255, 255, 255, 0.12);
+  
   /* Shadows & Effects */
-  --shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 32px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   --shadow-glow: 0 0 20px var(--neon-glow);
   --shadow-glow-strong: 0 0 30px var(--neon-glow-strong);
-  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
+  
+  /* Animation Speeds */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-  /* Glassmorphism */
-  --glass-bg: rgba(26, 26, 36, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.1);
+html {
+  scroll-behavior: smooth;
 }
 
 * {
@@ -124,14 +123,14 @@ h4 {
   width: 0;
   height: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
+  transition: width 0.6s ease, height 0.6s ease;
 }
 
 .btn:active::before {
-  width: 300px;
-  height: 300px;
+  width: 350px;
+  height: 350px;
 }
 
 .btn:disabled {
@@ -242,22 +241,37 @@ h4 {
   gap: 0.25rem;
 }
 
-/* Cards */
+/* Cards - Premium Futuristic UI */
 .card {
-  background: var(--glass-bg);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: var(--bg-elevated);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
   border-radius: 1rem;
   padding: 1.5rem;
-  box-shadow: var(--shadow-card);
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.05), transparent);
+  opacity: 0;
+  transition: opacity var(--transition-base);
 }
 
 .card:hover {
-  box-shadow: var(--shadow-card), var(--shadow-glow);
-  border-color: rgba(59, 130, 246, 0.3);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  border-color: var(--glass-border-bright);
+  transform: translateY(-4px);
+}
+
+.card:hover::after {
+  opacity: 1;
 }
 
 /* Glassmorphism Utilities */
