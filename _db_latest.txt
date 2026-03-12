@@ -1,0 +1,10 @@
+Latest 10 resumes:
+id, filename, uploaded_at, upload_source, uploaded_by_name, uploaded_by, uploader_name
+(238, 'Varuni_D_Resume.pdf', datetime.datetime(2026, 3, 12, 7, 49, 20, 482910), 'hr_manual_upload', 'Malhaar Phadtare', 'internal', 'Malhaar Phadtare')
+(237, 'vedant_resume_.pdf', datetime.datetime(2026, 3, 12, 7, 49, 19, 846877), 'hr_manual_upload', 'Malhaar Phadtare', 'internal', 'Malhaar Phadtare')
+(236, "Veer VIkram Nehra Python Dec'2025.pdf", datetime.datetime(2026, 3, 12, 7, 49, 19, 222748), 'hr_manual_upload', 'Malhaar Phadtare', 'internal', 'Malhaar Phadtare')
+(235, 'vikram_resume.pdf', datetime.datetime(2026, 3, 12, 7, 49, 18, 541278), 'hr_manual_upload', 'Malhaar Phadtare', 'internal', 'Malhaar Phadtare')
+(234, 'VISHAL_Latest (1).pdf', datetime.datetime(2026, 3, 12, 7, 49, 17, 916909), 'hr_manual_upload', 'Malhaar Phadtare', 'internal', 'Malhaar Phadtare')
+(233, 'VSwarna_CV.pdf', datetime.datetime(2026, 3, 12, 7, 49, 16, 793177), 'hr_manual_upload', 'Malhaar Phadtare', 'internal', 'Malhaar Phadtare')
+(232, 'yashwanth-peddiraju-v1-genai-resume.pdf', datetime.datetime(2026, 3, 12, 7, 49, 15, 998479), 'hr_manual_upload', 'Malhaar Phadtare', 'internal', 'Malhaar Phadtare')
+(231, 'Yogendra Shastri 2025 CV.pdf', datetime.datetime(2026, 3, 12, 7, 49, 15, 11498), 'hr_manual_upload', 'Malhaar Phadtare', 'internal', 'Malhaar Phadtare')

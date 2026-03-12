@@ -10,3 +10,5 @@ class ResumeOut(BaseModel):
     extracted_skills: Optional[List[str]] = []
     uploaded_by_name: Optional[str] = None
     upload_source: Optional[str] = None
+    uploaded_by: Optional[str] = "portal"
+    uploader_name: Optional[str] = None

@@ -385,9 +385,9 @@ const ResumeList = () => {
                                                         <span className="resume-date">
                                                             {new Date(resume.uploaded_at).toLocaleDateString()}
                                                         </span>
-                                                        <span className={`uploader-meta ${resume.upload_source}`}>
-                                                            {resume.upload_source === 'hr_manual_upload' ? <Plus size={12} /> : <Users size={12} />}
-                                                            {resume.uploaded_by_name || (resume.upload_source === 'hr_manual_upload' ? 'HR Upload' : 'Candidate Portal')}
+                                                        <span className={`uploader-meta ${resume.uploaded_by}`}>
+                                                            {resume.uploaded_by === 'internal' ? <Plus size={12} /> : <Users size={12} />}
+                                                            {resume.uploaded_by === 'internal' ? `Uploaded by: ${resume.uploader_name || 'Admin'}` : 'Candidate Portal'}
                                                         </span>
                                                     </div>
                                                 </div>

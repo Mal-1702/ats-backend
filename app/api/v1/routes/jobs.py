@@ -155,13 +155,15 @@ def update_skills_endpoint(
     Payload: { "skills": [...], "skill_priorities": [...] }
     """
     skills = payload.get("skills")
+    skill_priorities = payload.get("skill_priorities") # Optional
+    
     if skills is None or not isinstance(skills, list):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Payload must contain a 'skills' list",
         )
 
-    success = update_job_skills(job_id, skills)
+    success = update_job_skills(job_id, skills, skill_priorities)
     if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
 
@@ -217,7 +219,9 @@ async def upload_resumes_to_job(
                 filename=filename,
                 uploaded_by_user_id=current_user.get("user_id"),
                 uploaded_by_name=current_user.get("full_name"),
-                upload_source="hr_manual_upload"
+                upload_source="hr_manual_upload",
+                uploaded_by="internal",
+                uploader_name=current_user.get("full_name")
             )
 
             # Link to Job

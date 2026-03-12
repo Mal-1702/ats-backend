@@ -46,6 +46,8 @@ def list_resumes(
             extracted_skills=row[4],
             uploaded_by_name=row[5] if len(row) > 5 else None,
             upload_source=row[6] if len(row) > 6 else None,
+            uploaded_by=row[7] if len(row) > 7 else "portal",
+            uploader_name=row[8] if len(row) > 8 else None,
         )
         for row in rows
     ]

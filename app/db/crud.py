@@ -24,7 +24,9 @@ def insert_resume(
     filename: str,
     uploaded_by_user_id: Optional[int] = None,
     uploaded_by_name: Optional[str] = None,
-    upload_source: str = "candidate_portal"
+    upload_source: str = "candidate_portal",
+    uploaded_by: str = "portal",
+    uploader_name: Optional[str] = None
 ):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -42,15 +44,17 @@ def insert_resume(
     query = """
         INSERT INTO resumes (
             filename, experience_years, parsed_text, 
-            uploaded_by_user_id, uploaded_by_name, upload_source, file_hash
+            uploaded_by_user_id, uploaded_by_name, upload_source, file_hash,
+            uploaded_by, uploader_name
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id;
     """
 
     cursor.execute(query, (
         filename, experience, text, 
-        uploaded_by_user_id, uploaded_by_name, upload_source, file_hash
+        uploaded_by_user_id, uploaded_by_name, upload_source, file_hash,
+        uploaded_by, uploader_name
     ))
     resume_id = cursor.fetchone()[0]
 
@@ -75,7 +79,7 @@ def get_all_resumes(
 
     # Build the base query with dynamic ranking
     base_query = """
-        SELECT id, filename, uploaded_at, experience_years, extracted_skills, uploaded_by_name, upload_source
+        SELECT id, filename, uploaded_at, experience_years, extracted_skills, uploaded_by_name, upload_source, uploaded_by, uploader_name
     """
     
     # Ranking logic
@@ -381,7 +385,9 @@ def get_rankings_for_job(job_id: int):
             r.breakdown,
             r.insights,
             res.upload_source,
-            res.uploaded_by_name
+            res.uploaded_by_name,
+            res.uploaded_by,
+            res.uploader_name
         FROM rankings r
         JOIN resumes res ON r.resume_id = res.id
         WHERE r.job_id = %s
@@ -417,7 +423,7 @@ def get_resume_by_id(resume_id: int):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id, filename, uploaded_at, experience_years, extracted_skills, profile_data, parsed_text, uploaded_by_name, upload_source FROM resumes WHERE id = %s",
+        "SELECT id, filename, uploaded_at, experience_years, extracted_skills, profile_data, parsed_text, uploaded_by_name, upload_source, uploaded_by, uploader_name FROM resumes WHERE id = %s",
         (resume_id,)
     )
     row = cursor.fetchone()
@@ -515,11 +521,28 @@ def delete_job(job_id: int) -> bool:
     return result is not None
 
 
-def update_job_skills(job_id: int, skills: list) -> bool:
-    """Update the skills list for a job."""
+def update_job_skills(job_id: int, skills: list, skill_priorities: Optional[list] = None) -> bool:
+    """Update the skills list and optional skill_priorities for a job."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE jobs SET skills = %s WHERE id = %s RETURNING id", (skills, job_id))
+    
+    skill_priorities_json = json.dumps(skill_priorities) if skill_priorities else None
+
+    # Try updating with skill_priorities first
+    try:
+        if skill_priorities is not None:
+            cursor.execute(
+                "UPDATE jobs SET skills = %s, skill_priorities = %s::jsonb WHERE id = %s RETURNING id", 
+                (skills, skill_priorities_json, job_id)
+            )
+        else:
+            # Payload purposefully omitted skill_priorities, don't clobber it entirely
+            cursor.execute("UPDATE jobs SET skills = %s WHERE id = %s RETURNING id", (skills, job_id))
+    except Exception:
+        # Fallback for DBs that do not have the skill_priorities column
+        conn.rollback()
+        cursor.execute("UPDATE jobs SET skills = %s WHERE id = %s RETURNING id", (skills, job_id))
+
     result = cursor.fetchone()
     conn.commit()
     cursor.close()
@@ -828,7 +851,7 @@ def get_resumes_by_job(job_id: int):
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT r.id, r.filename, r.uploaded_at, r.experience_years, r.extracted_skills, r.uploaded_by_name, r.upload_source
+        SELECT r.id, r.filename, r.uploaded_at, r.experience_years, r.extracted_skills, r.uploaded_by_name, r.upload_source, r.uploaded_by, r.uploader_name
         FROM resumes r
         INNER JOIN applications a ON a.resume_id = r.id
         WHERE a.job_id = %s

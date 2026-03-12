@@ -43,8 +43,11 @@ async def upload_resume(
     try:
         resume_id = insert_resume(
             filename,
-            upload_source="candidate_portal",
-            uploaded_by_name="Candidate Portal",
+            uploaded_by_user_id=current_user.get("id"),
+            uploaded_by_name=current_user.get("full_name"),
+            upload_source="hr_manual_upload",
+            uploaded_by="internal",
+            uploader_name=current_user.get("full_name"),
         )
     except Exception as e:
         # If DB insert fails, remove the uploaded file

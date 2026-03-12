@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { jobsAPI, resumesAPI, dashboardAPI } from '../services/api';
 import Sidebar from '../components/Sidebar';
 import { Briefcase, Users, TrendingUp, Plus, Pencil, Trash2, X, Bell, Upload, CheckCircle, AlertCircle } from 'lucide-react';
+import SkillPriorityCard, { getPriorityConfig } from '../components/SkillPriorityCard';
 import './Dashboard.css';
 
 const LAST_CHECK_KEY = 'ats_last_dashboard_check';
@@ -85,7 +86,21 @@ const Dashboard = () => {
     // -------- EDIT SKILLS --------
     const openEditModal = (job) => {
         setEditingJob(job);
-        setEditSkills([...job.skills]);
+        
+        if (job.skill_priorities && job.skill_priorities.length > 0) {
+            const pMap = {};
+            job.skill_priorities.forEach(sp => { pMap[sp.skill] = sp; });
+            
+            const initialSkills = job.skills.map(skillName => {
+                if (pMap[skillName]) {
+                    return pMap[skillName];
+                }
+                return { skill: skillName, priority: 0.50, importance_level: 'medium' };
+            });
+            setEditSkills(initialSkills);
+        } else {
+            setEditSkills(job.skills.map(skillName => ({ skill: skillName, priority: 0.50, importance_level: 'medium' })));
+        }
         setNewSkill('');
     };
 
@@ -97,21 +112,38 @@ const Dashboard = () => {
 
     const addEditSkill = () => {
         const trimmed = newSkill.trim();
-        if (trimmed && !editSkills.includes(trimmed)) {
-            setEditSkills([...editSkills, trimmed]);
+        if (trimmed && !editSkills.find(s => s.skill.toLowerCase() === trimmed.toLowerCase())) {
+            setEditSkills([...editSkills, { skill: trimmed, priority: 0.50, importance_level: 'medium' }]);
             setNewSkill('');
         }
     };
 
-    const removeEditSkill = (skill) => {
-        setEditSkills(editSkills.filter(s => s !== skill));
+    const removeEditSkill = (skillName) => {
+        setEditSkills(editSkills.filter(s => s.skill !== skillName));
+    };
+
+    const updateEditSkillPriority = (skillName, newPriority) => {
+        const cfg = getPriorityConfig(newPriority);
+        setEditSkills(prev => prev.map(s => 
+            s.skill === skillName 
+                ? { ...s, priority: newPriority, importance_level: cfg.label.toLowerCase() }
+                : s
+        ));
     };
 
     const handleSaveSkills = async () => {
         if (!editingJob) return;
         setEditLoading(true);
         try {
-            await jobsAPI.updateSkills(editingJob.id, editSkills);
+            const payload = {
+                skills: editSkills.map(s => s.skill),
+                skill_priorities: editSkills.map(s => ({
+                    skill: s.skill,
+                    priority: s.priority,
+                    importance_level: s.importance_level
+                }))
+            };
+            await jobsAPI.updateSkills(editingJob.id, payload);
             closeEditModal();
             fetchData();
         } catch (error) {
@@ -359,21 +391,7 @@ const Dashboard = () => {
                         </div>
 
                         <div className="modal-body">
-                            <div className="edit-skills-tags">
-                                {editSkills.map((skill, idx) => (
-                                    <span key={idx} className="edit-skill-tag">
-                                        {skill}
-                                        <button onClick={() => removeEditSkill(skill)}>
-                                            <X size={12} />
-                                        </button>
-                                    </span>
-                                ))}
-                                {editSkills.length === 0 && (
-                                    <span className="no-skills-hint">No skills added yet</span>
-                                )}
-                            </div>
-
-                            <div className="edit-skill-input-row">
+                            <div className="edit-skill-input-row" style={{ marginBottom: '1.5rem' }}>
                                 <input
                                     type="text"
                                     className="form-input"
@@ -389,6 +407,20 @@ const Dashboard = () => {
                                 >
                                     <Plus size={14} /> Add
                                 </button>
+                            </div>
+
+                            <div className="skills-priority-grid" style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                                {editSkills.map((s) => (
+                                    <SkillPriorityCard
+                                        key={s.skill}
+                                        skillObj={s}
+                                        onRemove={removeEditSkill}
+                                        onPriorityChange={updateEditSkillPriority}
+                                    />
+                                ))}
+                                {editSkills.length === 0 && (
+                                    <span className="no-skills-hint" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem' }}>No skills added yet</span>
+                                )}
                             </div>
                         </div>
 
