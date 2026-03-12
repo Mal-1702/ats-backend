@@ -1,6 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from app.db.crud import insert_resume
 from app.core.security import get_current_user
+from app.utilities import storage
 import os
 import shutil
 
@@ -25,17 +26,12 @@ async def upload_resume(
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Only PDF/DOCX files are allowed")
 
-    # Ensure uploads directory exists
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-    # Save the file
-    file_path = os.path.join(UPLOAD_DIR, filename)
+    # Upload the file to Supabase via utility array
     try:
         contents = await file.read()
-        with open(file_path, "wb") as f:
-            f.write(contents)
+        saved_path = storage.upload_resume(contents, filename)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to save file remotely: {str(e)}")
     finally:
         await file.close()
 
@@ -50,14 +46,11 @@ async def upload_resume(
             uploader_name=current_user.get("full_name"),
         )
     except Exception as e:
-        # If DB insert fails, remove the uploaded file
-        if os.path.exists(file_path):
-            os.remove(file_path)
-        raise HTTPException(status_code=500, detail=f"Failed to record resume: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to record resume metadata: {str(e)}")
 
     return {
         "status": "uploaded",
         "filename": filename,
         "resume_id": resume_id,
-        "saved_at": file_path,
+        "saved_at": saved_path,
     }

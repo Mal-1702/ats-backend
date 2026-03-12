@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Query
 import fastapi
 from app.models.job import JobCreate, JobOut, SkillWithPriority, priority_to_level
 from app.db.crud import (
@@ -192,8 +192,6 @@ async def upload_resumes_to_job(
         raise HTTPException(status_code=404, detail="Job not found")
 
     ALLOWED_EXTENSIONS = {"pdf", "docx"}
-    UPLOAD_DIR = "uploads"
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
 
     results = []
     for file in files:
@@ -207,12 +205,10 @@ async def upload_resumes_to_job(
             results.append({"filename": filename, "status": "failed", "detail": "Invalid extension"})
             continue
 
-        # Save file
-        file_path = os.path.join(UPLOAD_DIR, filename)
+        # Save file to Supabase
         try:
             contents = await file.read()
-            with open(file_path, "wb") as f:
-                f.write(contents)
+            saved_path = storage.upload_resume(contents, filename)
             
             # Record in DB
             resume_id = insert_resume(
@@ -227,8 +223,8 @@ async def upload_resumes_to_job(
             # Link to Job
             link_manual_resume_to_job(job_id, resume_id)
 
-            # Trigger Background Processing
-            process_resume_task.delay(resume_id, file_path)
+            # Trigger Background Processing (Celery task will receive path)
+            process_resume_task.delay(resume_id, saved_path)
 
             results.append({"filename": filename, "status": "uploaded", "resume_id": resume_id})
         except Exception as e:

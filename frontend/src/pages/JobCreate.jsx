@@ -163,7 +163,7 @@ const JobCreate = () => {
                                 {skillObjs.length > 0 ? (
                                     <div className="skills-priority-grid">
                                         {skillObjs.map((s) => (
-                                            <SkillCard
+                                            <SkillPriorityCard
                                                 key={s.skill}
                                                 skillObj={s}
                                                 onRemove={removeSkill}

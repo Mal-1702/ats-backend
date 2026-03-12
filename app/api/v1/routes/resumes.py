@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, status, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from app.db.crud import get_all_resumes, delete_resume, get_resume_by_id, get_unique_skills, get_resumes_by_job, get_all_jobs_for_filter, bulk_delete_resumes
 from app.models.resume import ResumeOut
 from typing import List, Optional
@@ -7,6 +7,7 @@ from app.core.security import get_current_user
 from app.core.config import get_settings
 from pydantic import BaseModel
 import os
+from app.utilities import storage
 
 router = APIRouter()
 
@@ -142,20 +143,28 @@ def download_resume(
         )
 
     filename = resume[1]
+    
+    # Try looking for old local file
     file_path = os.path.join(os.path.abspath(settings.UPLOAD_DIR), filename)
-
-    if not os.path.exists(file_path):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Resume file not found on disk",
+    if os.path.exists(file_path):
+        return FileResponse(
+            path=file_path,
+            filename=filename,
+            media_type="application/octet-stream",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
 
-    return FileResponse(
-        path=file_path,
-        filename=filename,
-        media_type="application/octet-stream",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
-    )
+    # Fallback to Supabase Storage
+    path = f"resumes/{filename}"
+    url = storage.get_resume_url(path)
+    
+    if not url:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Resume file not found in bucket",
+        )
+    
+    return RedirectResponse(url)
 
 
 @router.get("/resumes/{resume_id}/view", tags=["Resume"])
@@ -175,23 +184,31 @@ def view_resume(
         )
 
     filename = resume[1]
-    file_path = os.path.join(os.path.abspath(settings.UPLOAD_DIR), filename)
-
-    if not os.path.exists(file_path):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Resume file not found on disk",
-        )
-
+    
     media_type = (
         "application/pdf"
         if filename.lower().endswith(".pdf")
         else "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
-    return FileResponse(
-        path=file_path,
-        filename=filename,
-        media_type=media_type,
-        headers={"Content-Disposition": f"inline; filename={filename}"},
-    )
+    # Try looking for old local file
+    file_path = os.path.join(os.path.abspath(settings.UPLOAD_DIR), filename)
+    if os.path.exists(file_path):
+        return FileResponse(
+            path=file_path,
+            filename=filename,
+            media_type=media_type,
+            headers={"Content-Disposition": f"inline; filename={filename}"},
+        )
+
+    # Fallback to Supabase Storage
+    path = f"resumes/{filename}"
+    url = storage.get_resume_url(path)
+    
+    if not url:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Resume not found in bucket",
+        )
+        
+    return RedirectResponse(url)

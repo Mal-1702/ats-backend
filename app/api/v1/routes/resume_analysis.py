@@ -40,14 +40,19 @@ def analyze_single_resume(
     # DB columns: id, filename, uploaded_at, experience_years, extracted_skills, profile_data, (parsed_text if updated)
     # Let's assume parsed_text is in row[2] or we need to re-parse from file
     filename = resume[1]
+    
+    # Check local first
     file_path = f"uploads/{filename}"
+    if not os.path.exists(file_path):
+         from app.core.config import get_settings
+         file_path_abs = os.path.join(get_settings().UPLOAD_DIR, filename)
+         if os.path.exists(file_path_abs):
+             file_path = file_path_abs
+         else:
+             # If completely missing locally, attempt Supabase bucket path
+             file_path = f"resumes/{filename}"
     
     try:
-        if not os.path.exists(file_path):
-             # Try absolute path from settings if relative fails
-             from app.core.config import get_settings
-             file_path = os.path.join(get_settings().UPLOAD_DIR, filename)
-             
         text = parse_resume(file_path)
         analysis = analyzer.analyze_standalone(text)
         analysis["filename"] = filename

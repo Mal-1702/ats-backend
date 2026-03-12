@@ -10,14 +10,25 @@ import os
 
 
 def _calculate_file_hash(filepath: str) -> str:
-    """Calculate SHA-256 hash of a file."""
+    """Calculate SHA-256 hash of a file (local or remote)."""
     sha256_hash = hashlib.sha256()
     try:
+        # If it's a Supabase bucket path, download bytes to hash
+        if filepath.startswith("resumes/"):
+            from app.utilities import storage
+            bytes_data = storage.download_resume_bytes(filepath)
+            if bytes_data:
+                sha256_hash.update(bytes_data)
+                return sha256_hash.hexdigest()
+            return None
+            
+        # Local fallback
         with open(filepath, "rb") as f:
             for byte_block in iter(lambda: f.read(4096), b""):
                 sha256_hash.update(byte_block)
         return sha256_hash.hexdigest()
-    except Exception:
+    except Exception as e:
+        print(f"Warning: Hash calculation failed for {filepath}: {e}")
         return None
 
 def insert_resume(
@@ -31,7 +42,8 @@ def insert_resume(
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    path = f"uploads/{filename}"
+    # The new standard is Supabase storage
+    path = f"resumes/{filename}"
     file_hash = _calculate_file_hash(path)
 
     try:

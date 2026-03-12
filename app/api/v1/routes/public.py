@@ -5,6 +5,7 @@ These are the ONLY routes accessible from the Candidate Portal.
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.db.crud import get_open_jobs, insert_application, insert_resume, get_job_by_id
 from app.models.application import PublicJobOut, ApplicationOut
+from app.utilities import storage
 from typing import List
 import os
 
@@ -81,18 +82,14 @@ async def submit_application(
         raise HTTPException(status_code=413, detail="File exceeds the 10 MB limit.")
 
     # ── Save file ─────────────────────────────────────────────
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-
     # Prefix with candidate name to avoid collisions
     safe_name = candidate_name.strip().replace(" ", "_").lower()
     stored_filename = f"candidate_{safe_name}_{filename}"
-    file_path = os.path.join(UPLOAD_DIR, stored_filename)
 
     try:
-        with open(file_path, "wb") as f:
-            f.write(contents)
+        saved_path = storage.upload_resume(contents, stored_filename)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save resume: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to save resume remotely: {str(e)}")
     finally:
         await resume_file.close()
 
@@ -106,8 +103,6 @@ async def submit_application(
             uploader_name=None,
         )
     except Exception as e:
-        if os.path.exists(file_path):
-            os.remove(file_path)
         raise HTTPException(status_code=500, detail=f"Failed to record resume: {str(e)}")
 
     # ── Insert application record ─────────────────────────────
