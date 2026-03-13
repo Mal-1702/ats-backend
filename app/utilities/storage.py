@@ -1,12 +1,10 @@
-import os
 from supabase import create_client
-from dotenv import load_dotenv
+from app.core.config import get_settings
 
-load_dotenv()
-
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "resumes")
+settings = get_settings()
+SUPABASE_URL = settings.SUPABASE_URL
+SUPABASE_KEY = settings.SUPABASE_KEY
+SUPABASE_BUCKET = settings.SUPABASE_BUCKET
 
 supabase = None
 if SUPABASE_URL and SUPABASE_KEY:
@@ -18,13 +16,7 @@ def upload_resume(file_bytes: bytes, filename: str) -> str:
     Returns the path: resumes/{filename}
     """
     if not supabase:
-        print("Warning: Supabase client not initialized. Check your .env variables.")
-        # Fallback to local write if someone runs without supabase configured during dev
-        os.makedirs("uploads", exist_ok=True)
-        local_path = os.path.join("uploads", filename)
-        with open(local_path, "wb") as f:
-            f.write(file_bytes)
-        return local_path
+        raise RuntimeError("Supabase client not initialized. Check your credentials.")
 
     import time
     timestamp = int(time.time())
@@ -60,3 +52,15 @@ def download_resume_bytes(path: str) -> bytes:
         
     response = supabase.storage.from_(SUPABASE_BUCKET).download(path)
     return response
+
+def delete_resume(path: str):
+    """
+    Deletes a file from Supabase Storage.
+    """
+    if not supabase or not path.startswith("resumes/"):
+        return
+        
+    try:
+        supabase.storage.from_(SUPABASE_BUCKET).remove([path])
+    except Exception as e:
+        print(f"Warning: Failed to delete {path} from Supabase: {e}")
