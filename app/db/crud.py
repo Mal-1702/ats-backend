@@ -9,7 +9,7 @@ import hashlib
 import os
 
 
-def _calculate_file_hash(filepath: str) -> str:
+def calculate_file_hash(filepath: str) -> str:
     """Calculate SHA-256 hash of a file (local or remote)."""
     sha256_hash = hashlib.sha256()
     try:
@@ -23,10 +23,12 @@ def _calculate_file_hash(filepath: str) -> str:
             return None
             
         # Local fallback
-        with open(filepath, "rb") as f:
-            for byte_block in iter(lambda: f.read(4096), b""):
-                sha256_hash.update(byte_block)
-        return sha256_hash.hexdigest()
+        if os.path.exists(filepath):
+            with open(filepath, "rb") as f:
+                for byte_block in iter(lambda: f.read(4096), b""):
+                    sha256_hash.update(byte_block)
+            return sha256_hash.hexdigest()
+        return None
     except Exception as e:
         print(f"Warning: Hash calculation failed for {filepath}: {e}")
         return None
@@ -42,31 +44,22 @@ def insert_resume(
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # The new standard is Supabase storage
-    path = f"resumes/{filename}"
-    file_hash = _calculate_file_hash(path)
-
-    try:
-        text = parse_resume(path)
-    except:
-        text = ""
-
-    experience = extract_years_of_experience(text)
-
+    # --- INDUSTRY GRADE: Lightweight Insertion ---
+    # We do NOT parse or hash here because it's slow (3-5s per file).
+    # Background worker (Celery) will handle this.
+    
     query = """
         INSERT INTO resumes (
-            filename, experience_years, parsed_text, 
-            uploaded_by_user_id, uploaded_by_name, upload_source, file_hash,
-            uploaded_by, uploader_name
+            filename, uploaded_by_user_id, uploaded_by_name, 
+            upload_source, uploaded_by, uploader_name
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s)
         RETURNING id;
     """
 
     cursor.execute(query, (
-        filename, experience, text, 
-        uploaded_by_user_id, uploaded_by_name, upload_source, file_hash,
-        uploaded_by, uploader_name
+        filename, uploaded_by_user_id, uploaded_by_name, 
+        upload_source, uploaded_by, uploader_name
     ))
     resume_id = cursor.fetchone()[0]
 
@@ -473,6 +466,7 @@ def update_resume_with_profile(resume_id: int, candidate_profile: dict):
         SET experience_years = %s,
             extracted_skills = %s,
             parsed_text = %s,
+            file_hash = %s,
             profile_data = %s,
             processed_at = CURRENT_TIMESTAMP
         WHERE id = %s;
@@ -480,6 +474,7 @@ def update_resume_with_profile(resume_id: int, candidate_profile: dict):
         candidate_profile.get('years_of_experience', 0),
         candidate_profile.get('skills', []),
         candidate_profile.get('parsed_text', ''),
+        candidate_profile.get('file_hash'),
         json.dumps(candidate_profile),
         resume_id
     ))

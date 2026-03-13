@@ -107,6 +107,10 @@ async def submit_application(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to record resume: {str(e)}")
 
+    # ── Trigger Background Parsing ────────────────────────────
+    from app.workers.tasks import process_resume_task
+    process_resume_task.delay(resume_id, saved_path)
+
     # ── Insert application record ─────────────────────────────
     try:
         app_id, submitted_at = insert_application(

@@ -1,5 +1,5 @@
 from app.workers.celery_worker import celery_app
-from app.db.crud import update_resume_with_profile, update_job_with_profile
+from app.db.crud import update_resume_with_profile, update_job_with_profile, calculate_file_hash
 import logging
 
 logger = logging.getLogger(__name__)
@@ -15,16 +15,18 @@ def process_resume_task(self, resume_id: int, file_path: str):
         self.update_state(state="PROGRESS", meta={"step": "parsing"})
 
         from app.services.resume_parser import parse_resume
-        from app.services.scorer import extract_years_of_experience, extract_skills
+        from app.services.scorer import extract_years_of_experience, extract_skills_from_text
 
         text = parse_resume(file_path)
         experience = extract_years_of_experience(text)
-        skills = extract_skills(text)
+        skills = extract_skills_from_text(text)
+        file_hash = calculate_file_hash(file_path)
 
         candidate_profile = {
             "parsed_text": text,
             "years_of_experience": experience,
             "skills": skills,
+            "file_hash": file_hash,
             "filename": file_path.split("/")[-1],
         }
 
