@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from functools import lru_cache
 import os
 
@@ -8,11 +9,12 @@ class Settings(BaseSettings):
     DATABASE_HOST: str = "localhost"
     DATABASE_PORT: int = 5432
     DATABASE_USER: str = "postgres"
-    DATABASE_PASSWORD: str
+    DATABASE_PASSWORD: str = ""
     DATABASE_NAME: str = "ats_db"
+    DATABASE_URL: str = ""
 
     # JWT
-    JWT_SECRET_KEY: str
+    JWT_SECRET_KEY: str = ""
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
@@ -29,7 +31,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "Enterprise ATS"
     APP_VERSION: str = "2.0.0"
     DEBUG: bool = False
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
+    CORS_ORIGINS: str = "*"
     FRONTEND_URL: str = "http://localhost:3000"
 
     # SMTP / Emails
@@ -44,6 +46,9 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "uploads"
     MAX_UPLOAD_SIZE_MB: int = 10
     ALLOWED_EXTENSIONS: str = "pdf,docx"
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
+    SUPABASE_BUCKET: str = "resumes"
 
     # Celery / Redis
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -56,31 +61,21 @@ class Settings(BaseSettings):
     # Data Lifecycle
     RESUME_RETENTION_DAYS: int = 90
 
-    from pydantic import field_validator
-
-    @field_validator("DATABASE_URL", "REDIS_URL", "CELERY_BROKER_URL", "CELERY_RESULT_BACKEND", mode="before")
+    @field_validator("DATABASE_URL", "REDIS_URL", "CELERY_BROKER_URL", "CELERY_RESULT_BACKEND", mode="before", check_fields=False)
     @classmethod
     def clean_urls(cls, v):
         if isinstance(v, str):
-            return v.strip()
+            v = v.strip()
+            # Remove any trailing / that might break connection strings
+            if v.endswith("/") and "://" in v:
+                v = v[:-1]
+            return v
         return v
 
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
         extra = "ignore"
-
-    @property
-    def clean_redis_url(self) -> str:
-        return self.REDIS_URL.strip()
-
-    @property
-    def clean_broker_url(self) -> str:
-        return self.CELERY_BROKER_URL.strip()
-
-    @property
-    def clean_result_backend(self) -> str:
-        return self.CELERY_RESULT_BACKEND.strip()
 
 
 @lru_cache()
