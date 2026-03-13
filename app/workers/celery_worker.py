@@ -4,6 +4,11 @@ from app.core.config import get_settings
 settings = get_settings()
 
 def fix_redis_url(url: str) -> str:
+    if not url:
+        return url
+    
+    url = url.strip()
+    
     if url.startswith("rediss://") and "ssl_cert_reqs" not in url:
         separator = "&" if "?" in url else "?"
         return f"{url}{separator}ssl_cert_reqs=none"
