@@ -3,10 +3,19 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
+def fix_redis_url(url: str) -> str:
+    if url.startswith("rediss://") and "ssl_cert_reqs" not in url:
+        separator = "&" if "?" in url else "?"
+        return f"{url}{separator}ssl_cert_reqs=none"
+    return url
+
+broker_url = fix_redis_url(settings.CELERY_BROKER_URL)
+backend_url = fix_redis_url(settings.CELERY_RESULT_BACKEND)
+
 celery_app = Celery(
     "ats_worker",
-    broker=settings.CELERY_BROKER_URL,
-    backend=settings.CELERY_RESULT_BACKEND,
+    broker=broker_url,
+    backend=backend_url,
     include=["app.workers.tasks"],
 )
 
