@@ -187,7 +187,7 @@ const Dashboard = () => {
 
         try {
             await jobsAPI.uploadResumes(uploadJob.id, uploadFiles);
-            setUploadStatus({ type: 'success', message: `Successfully uploaded ${uploadFiles.length} resume(s)! Processing in background.` });
+            setUploadStatus({ type: 'success', message: `Successfully uploaded ${uploadFiles.length} resume(s)!` });
             setUploadFiles([]);
             fetchData();
             setTimeout(closeUploadModal, 2000);

@@ -29,11 +29,17 @@ def upload_resume(file_bytes: bytes, filename: str) -> str:
     
     # Upload bytes
     try:
-        response = supabase.storage.from_(SUPABASE_BUCKET).upload(
+        res = supabase.storage.from_(SUPABASE_BUCKET).upload(
             path,
             file_bytes,
-            {"content-type": "application/pdf" if filename.lower().endswith(".pdf") else "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
+            {
+                "content-type": "application/pdf" if filename.lower().endswith(".pdf") else "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "upsert": "true"
+            }
         )
+        # Check for error in response if supabase-py doesn't raise
+        if hasattr(res, 'error') and res.error:
+            raise RuntimeError(f"Supabase error: {res.error}")
     except Exception as e:
         print(f"ERROR: Supabase upload failed for {path}: {e}")
         raise e

@@ -993,3 +993,24 @@ def update_user_password(user_id: int, hashed_password: str):
     conn.commit()
     cur.close()
     conn.close()
+
+
+def delete_resume(resume_id: int):
+    """
+    Delete a resume from the database and return its filename for storage cleanup.
+    """
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    # Get filename first
+    cur.execute("SELECT filename FROM resumes WHERE id = %s", (resume_id,))
+    row = cur.fetchone()
+    filename = row[0] if row else None
+    
+    if filename:
+        cur.execute("DELETE FROM resumes WHERE id = %s", (resume_id,))
+        conn.commit()
+    
+    cur.close()
+    conn.close()
+    return filename

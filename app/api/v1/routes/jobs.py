@@ -235,8 +235,17 @@ async def upload_resumes_to_job(
         finally:
             await file.close()
 
+    # If any files failed, raise an exception so the frontend sees it as an error
+    failed_count = sum(1 for r in results if r["status"] == "failed")
+    if failed_count > 0:
+        first_error = next((r["detail"] for r in results if r["status"] == "failed"), "Unknown error")
+        raise HTTPException(
+            status_code=400,
+            detail=f"{failed_count} file(s) failed. First error: {first_error}"
+        )
+
     return {
         "job_id": job_id,
         "results": results,
-        "message": f"Processed {len(files)} file(s)"
+        "message": f"Successfully uploaded {len(files)} file(s)"
     }
