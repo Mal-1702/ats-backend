@@ -112,12 +112,9 @@ def delete_resume_endpoint(
             detail="Resume not found",
         )
 
-    file_path = os.path.join(settings.UPLOAD_DIR, filename)
-    if os.path.exists(file_path):
-        try:
-            os.remove(file_path)
-        except Exception as e:
-            print(f"Warning: Could not delete file {file_path}: {e}")
+    # Delete from Supabase Storage
+    path = f"resumes/{filename}"
+    storage.delete_resume(path)
 
     return {
         "message": "Resume deleted successfully",

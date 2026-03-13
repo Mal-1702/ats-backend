@@ -118,6 +118,7 @@ def get_all_resumes(
 
     relevance_score = " + ".join(ranking_parts)
     
+    # Base query should NOT filter by relevance by default, only sort by it if requested
     query = f"{base_query}, ({relevance_score}) as relevance FROM resumes"
     where_clauses = []
 
@@ -126,7 +127,7 @@ def get_all_resumes(
         params.extend([f"%{search_query}%", f"%{search_query}%"])
     
     if skills:
-        # Filter for resumes containing ALL selected skills (as requested in Feature 4)
+        # Filter for resumes containing ALL selected skills
         where_clauses.append("extracted_skills @> %s")
         params.append(skills)
 
