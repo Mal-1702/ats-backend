@@ -1,3 +1,4 @@
+import ssl
 from celery import Celery
 from app.core.config import get_settings
 
@@ -7,23 +8,21 @@ def fix_redis_url(url: str) -> str:
     if not url:
         return url
     
-    # Remove any surrounding whitespace or newlines
     clean_url = url.strip()
     
-    # Debug print so we can see what's happening in Render logs
-    print(f"DEBUG: Processing Redis URL (first 10 chars): {clean_url[:10]}...")
-
+    # Celery's Redis backend is VERY picky and requires exactly one of these strings:
+    # CERT_REQUIRED, CERT_OPTIONAL, or CERT_NONE
     if clean_url.lower().startswith("rediss://") and "ssl_cert_reqs" not in clean_url:
         separator = "&" if "?" in clean_url else "?"
-        fixed_url = f"{clean_url}{separator}ssl_cert_reqs=none"
-        print("DEBUG: Applied SSL fix to Redis URL")
+        fixed_url = f"{clean_url}{separator}ssl_cert_reqs=CERT_NONE"
         return fixed_url
         
     return clean_url
 
-settings = get_settings()
 broker_url = fix_redis_url(settings.CELERY_BROKER_URL)
 backend_url = fix_redis_url(settings.CELERY_RESULT_BACKEND)
+
+print(f"DEBUG: Celery Broker URL starts with: {broker_url[:15]}")
 
 celery_app = Celery(
     "ats_worker",
@@ -40,4 +39,7 @@ celery_app.conf.update(
     accept_content=["json"],
     timezone="UTC",
     enable_utc=True,
+    # Additional layer of safety for SSL
+    broker_use_ssl={'ssl_cert_reqs': ssl.CERT_NONE} if broker_url.startswith("rediss") else None,
+    redis_backend_use_ssl={'ssl_cert_reqs': ssl.CERT_NONE} if backend_url.startswith("rediss") else None,
 )

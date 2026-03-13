@@ -56,6 +56,15 @@ class Settings(BaseSettings):
     # Data Lifecycle
     RESUME_RETENTION_DAYS: int = 90
 
+    from pydantic import field_validator
+
+    @field_validator("DATABASE_URL", "REDIS_URL", "CELERY_BROKER_URL", "CELERY_RESULT_BACKEND", mode="before")
+    @classmethod
+    def clean_urls(cls, v):
+        if isinstance(v, str):
+            return v.strip()
+        return v
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
