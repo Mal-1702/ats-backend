@@ -77,9 +77,19 @@ def login(credentials: UserLogin):
     Authenticate with email + password and receive a JWT access token.
     The token now includes the user's role.
     """
+    print(f"DEBUG: Login attempt for email: {credentials.email}")
     user_row = get_user_by_email(credentials.email)
 
-    if not user_row or not verify_password(credentials.password, user_row[2]):
+    if not user_row:
+        print(f"DEBUG: Login failed - User not found for email: {credentials.email}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not verify_password(credentials.password, user_row[2]):
+        print(f"DEBUG: Login failed - Password mismatch for email: {credentials.email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
@@ -87,10 +97,13 @@ def login(credentials: UserLogin):
         )
 
     if not user_row[4]:  # is_active
+        print(f"DEBUG: Login failed - Account disabled for email: {credentials.email}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is disabled",
         )
+
+    print(f"DEBUG: Login successful for email: {credentials.email}")
 
     role = user_row[6] if len(user_row) > 6 else "hr"
     full_name = user_row[3] if len(user_row) > 3 else ""
