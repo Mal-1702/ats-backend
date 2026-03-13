@@ -42,14 +42,14 @@ def rank_resume(
     current_user: dict = Depends(get_current_user),
 ):
     """Score a single uploaded resume against provided job requirements."""
-    resume_path = os.path.join("uploads", job.filename)
-    if not os.path.exists(resume_path):
-        raise HTTPException(status_code=404, detail=f"Resume '{job.filename}' not found")
+    # Build storage path
+    path = f"resumes/{job.filename}"
 
     try:
-        resume_text = parse_resume(resume_path)
+        # parse_resume already handles remote Supabase paths
+        resume_text = parse_resume(path)
     except (ValueError, FileNotFoundError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=f"Parsing failed for {job.filename}: {str(e)}")
 
     result = score_resume(
         resume_text,

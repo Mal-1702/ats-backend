@@ -210,9 +210,12 @@ async def upload_resumes_to_job(
             contents = await file.read()
             saved_path = storage.upload_resume(contents, filename)
             
+            # Extract the final unique filename (e.g. resumes/123_res.pdf -> 123_res.pdf)
+            unique_filename = saved_path.split("/")[-1]
+            
             # Record in DB
             resume_id = insert_resume(
-                filename=filename,
+                filename=unique_filename,
                 uploaded_by_user_id=current_user.get("user_id"),
                 uploaded_by_name=current_user.get("full_name"),
                 upload_source="hr_manual_upload",

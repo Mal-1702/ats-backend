@@ -918,14 +918,25 @@ def bulk_delete_resumes(resume_ids: list) -> dict:
         )
         conn.commit()
 
-        # 3. Remove files from disk (best-effort, errors are logged not raised)
+        # 3. Remove files from storage (Supabase or local legacy)
+        from app.utilities import storage
         for _, filename in found_rows:
-            path = os.path.join("uploads", filename)
+            # Try Supabase first
             try:
-                if os.path.exists(path):
-                    os.remove(path)
+                path = f"resumes/{filename}"
+                storage.delete_resume(path)
+                logger.info("Deleted %s from Supabase storage", path)
             except Exception as e:
-                print(f"Warning: could not delete file {path}: {e}")
+                logger.warning("Supabase delete failed for %s: %s", filename, e)
+
+            # Local fallback (legacy cleanup)
+            local_path = os.path.join("uploads", filename)
+            try:
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+                    logger.info("Deleted %s from local legacy storage", local_path)
+            except Exception as e:
+                logger.warning("Local legacy delete failed for %s: %s", local_path, e)
 
     cur.close()
     conn.close()

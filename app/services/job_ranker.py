@@ -269,16 +269,14 @@ def rank_resumes_for_job(
 
     # ── Pass 1: Individual scoring ───────────────────────────────────────
     for resume_id, filename in resumes:
-        path = os.path.join(uploads_dir, filename)
-
-        if not os.path.exists(path):
-            logger.warning("Resume file not found, skipping: %s", path)
-            continue
+        # Use storage path format: resumes/filename
+        path = f"resumes/{filename}"
 
         try:
+            # parse_resume already handles remote Supabase paths
             text = parse_resume(path)
         except Exception as exc:
-            logger.error("Failed to parse %s: %s", filename, exc)
+            logger.error("Failed to parse %s (ID: %s): %s", filename, resume_id, exc)
             continue
 
         if not text or len(text.strip()) < 20:
