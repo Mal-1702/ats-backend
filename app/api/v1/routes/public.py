@@ -88,6 +88,8 @@ async def submit_application(
 
     try:
         saved_path = storage.upload_resume(contents, stored_filename)
+        # Extract the final unique filename (e.g., resumes/123_res.pdf -> 123_res.pdf)
+        unique_stored_filename = saved_path.split("/")[-1]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save resume remotely: {str(e)}")
     finally:
@@ -96,7 +98,7 @@ async def submit_application(
     # ── Insert resume (runs existing parsing pipeline) ────────
     try:
         resume_id = insert_resume(
-            stored_filename,
+            unique_stored_filename,
             upload_source="candidate_portal",
             uploaded_by_name="Candidate Portal",
             uploaded_by="portal",

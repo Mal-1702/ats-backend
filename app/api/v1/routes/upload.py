@@ -30,6 +30,8 @@ async def upload_resume(
     try:
         contents = await file.read()
         saved_path = storage.upload_resume(contents, filename)
+        # Extract the unique filename from the path (e.g., resumes/123_res.pdf -> 123_res.pdf)
+        saved_filename = saved_path.split("/")[-1]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save file remotely: {str(e)}")
     finally:
@@ -38,8 +40,8 @@ async def upload_resume(
     # Insert resume metadata into database (non-blocking — parse errors won't fail the upload)
     try:
         resume_id = insert_resume(
-            filename,
-            uploaded_by_user_id=current_user.get("id"),
+            saved_filename,
+            uploaded_by_user_id=current_user.get("user_id"),
             uploaded_by_name=current_user.get("full_name"),
             upload_source="hr_manual_upload",
             uploaded_by="internal",

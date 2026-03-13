@@ -26,13 +26,16 @@ def upload_resume(file_bytes: bytes, filename: str) -> str:
             f.write(file_bytes)
         return local_path
 
-    path = f"resumes/{filename}"
+    import time
+    timestamp = int(time.time())
+    unique_filename = f"{timestamp}_{filename}"
+    path = f"resumes/{unique_filename}"
     
     # Upload bytes
     response = supabase.storage.from_(SUPABASE_BUCKET).upload(
         path,
         file_bytes,
-        {"content-type": "application/pdf"}
+        {"content-type": "application/pdf" if filename.lower().endswith(".pdf") else "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
     )
     
     return path
