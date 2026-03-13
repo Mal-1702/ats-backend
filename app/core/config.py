@@ -61,6 +61,18 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
         extra = "ignore"
 
+    @property
+    def clean_redis_url(self) -> str:
+        return self.REDIS_URL.strip()
+
+    @property
+    def clean_broker_url(self) -> str:
+        return self.CELERY_BROKER_URL.strip()
+
+    @property
+    def clean_result_backend(self) -> str:
+        return self.CELERY_RESULT_BACKEND.strip()
+
 
 @lru_cache()
 def get_settings() -> Settings:

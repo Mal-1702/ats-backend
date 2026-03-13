@@ -7,13 +7,21 @@ def fix_redis_url(url: str) -> str:
     if not url:
         return url
     
-    url = url.strip()
+    # Remove any surrounding whitespace or newlines
+    clean_url = url.strip()
     
-    if url.startswith("rediss://") and "ssl_cert_reqs" not in url:
-        separator = "&" if "?" in url else "?"
-        return f"{url}{separator}ssl_cert_reqs=none"
-    return url
+    # Debug print so we can see what's happening in Render logs
+    print(f"DEBUG: Processing Redis URL (first 10 chars): {clean_url[:10]}...")
 
+    if clean_url.lower().startswith("rediss://") and "ssl_cert_reqs" not in clean_url:
+        separator = "&" if "?" in clean_url else "?"
+        fixed_url = f"{clean_url}{separator}ssl_cert_reqs=none"
+        print("DEBUG: Applied SSL fix to Redis URL")
+        return fixed_url
+        
+    return clean_url
+
+settings = get_settings()
 broker_url = fix_redis_url(settings.CELERY_BROKER_URL)
 backend_url = fix_redis_url(settings.CELERY_RESULT_BACKEND)
 
