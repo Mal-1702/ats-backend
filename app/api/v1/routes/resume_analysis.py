@@ -122,7 +122,16 @@ async def chat_with_resume(
     resume_text = session["resume_text"]
     history = session["history"]
     
-    system_prompt = f"You are an expert career consultant and ATS analyzer. You are helping a candidate improve their resume. \n\nRESUME CONTENT:\n{resume_text[:4000]}\n\nPREVIOUS CONTEXT:\n{str(history[-5:]) if history else 'First message.'}"
+    system_prompt = (
+        "You are an expert career consultant and ATS analyzer. "
+        "Your ONLY goal is to help candidates improve their resume and career prospects. "
+        "Strictly only answer questions related to the provided resume, career advice, job applications, or resume formatting. "
+        "If the user asks about unrelated topics (e.g., general knowledge, jokes, unrelated services), "
+        "politely decline and state that you are a specialized Resume Analysis Assistant.\n\n"
+        f"RESUME CONTENT:\n{resume_text[:4000]}\n\n"
+        f"PREVIOUS CONTEXT:\n{str(history[-5:]) if history else 'First message.'}"
+    )
+
     
     response = llm_service.get_chat_response(system_prompt, request.message)
     
@@ -145,7 +154,16 @@ async def chat_with_resume_stream(
     resume_text = session["resume_text"]
     history = session["history"]
     
-    system_prompt = f"You are an expert career consultant and ATS analyzer. You are helping a candidate improve their resume. \n\nRESUME CONTENT:\n{resume_text[:4000]}\n\nPREVIOUS CONTEXT:\n{str(history[-5:]) if history else 'First message.'}"
+    system_prompt = (
+        "You are an expert career consultant and ATS analyzer. "
+        "Your ONLY goal is to help candidates improve their resume and career prospects. "
+        "Strictly only answer questions related to the provided resume, career advice, job applications, or resume formatting. "
+        "If the user asks about unrelated topics (e.g., general knowledge, jokes, unrelated services), "
+        "politely decline and state that you are a specialized Resume Analysis Assistant.\n\n"
+        f"RESUME CONTENT:\n{resume_text[:4000]}\n\n"
+        f"PREVIOUS CONTEXT:\n{str(history[-5:]) if history else 'First message.'}"
+    )
+
     
     def event_generator():
         full_response = ""

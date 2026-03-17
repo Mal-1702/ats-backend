@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, status
+from pydantic import BaseModel
 from datetime import timedelta
 from app.models.user import (
     UserRegister, 
@@ -24,8 +25,9 @@ from app.core.security import (
     get_current_user,
 )
 from app.core.config import get_settings
-from app.services.email import send_reset_password_email
+from app.services.email import send_reset_password_email, send_otp_email
 import secrets
+import random
 from datetime import datetime, timedelta, timezone
 
 router = APIRouter()
@@ -66,9 +68,55 @@ def register(payload: UserRegister):
         role="hr",      # public registration always hr
         dob=payload.dob,
     )
+    
+    # Generate 6-digit OTP
+    otp = str(random.randint(100000, 999999))
+    # 10 minutes expiry
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+    
+    from app.db.crud import update_user_otp
+    update_user_otp(user_id, otp, expires_at)
+    
+    # Send OTP strictly via Gmail
+    try:
+        send_otp_email(payload.email, otp)
+    except Exception as e:
+        # In a production app, you might want to rollback the user creation if email fails
+        # but for now we'll just log it. The user can request a resend later (not implemented yet).
+        pass
 
     user_row = get_user_by_id(user_id)
     return _row_to_user_out(user_row)
+
+
+class OtpVerificationRequest(BaseModel):
+    email: str
+    otp: str
+
+@router.post("/auth/verify-otp", tags=["Auth"])
+def verify_otp(payload: OtpVerificationRequest):
+    """Verify the 6-digit OTP sent via Gmail to activate the account."""
+    user_row = get_user_by_email(payload.email)
+    if not user_row:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    # user_row index: 0:id, 1:email, 2:pw, 3:name, 4:active, 5:created, 6:role, 7:dob, 8:otp, 9:otp_expires
+    stored_otp = user_row[8]
+    expires_at = user_row[9]
+    
+    if not stored_otp or stored_otp != payload.otp:
+        raise HTTPException(status_code=400, detail="Invalid verification code")
+        
+    if expires_at:
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) > expires_at:
+            raise HTTPException(status_code=400, detail="Verification code has expired")
+            
+    from app.db.crud import activate_user
+    activate_user(user_row[0])
+    
+    return {"message": "Account activated successfully! You can now log in."}
 
 
 @router.post("/auth/login", response_model=TokenOut, tags=["Auth"])
@@ -87,6 +135,11 @@ def login(credentials: UserLogin):
         )
 
     if not user_row[4]:  # is_active
+        if user_row[8]: # Has OTP pending?
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Email not verified. Please check your Gmail for the OTP.",
+            )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is disabled",

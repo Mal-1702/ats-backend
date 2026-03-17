@@ -205,6 +205,34 @@
     margin-bottom: 1rem;
 }
 
+.file-list-items {
+    max-height: 400px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-right: 0.5rem;
+}
+
+/* Custom scrollbar for file list */
+.file-list-items::-webkit-scrollbar {
+    width: 6px;
+}
+
+.file-list-items::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.file-list-items::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.3);
+    border-radius: 10px;
+}
+
+.file-list-items::-webkit-scrollbar-thumb:hover {
+    background: rgba(59, 130, 246, 0.5);
+}
+
 .file-item {
     display: flex;
     align-items: center;

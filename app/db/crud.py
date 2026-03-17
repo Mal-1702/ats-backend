@@ -560,11 +560,11 @@ def create_user(email: str, hashed_password: str, full_name: str = None, role: s
 
 
 def get_user_by_email(email: str):
-    """Get user by email. Returns row: (id, email, hashed_password, full_name, is_active, created_at, role, dob)"""
+    """Get user by email. Returns row: (id, email, hashed_password, full_name, is_active, created_at, role, dob, otp, otp_expires_at)"""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id, email, hashed_password, full_name, is_active, created_at, COALESCE(role, 'hr'), dob FROM users WHERE email = %s;",
+        "SELECT id, email, hashed_password, full_name, is_active, created_at, COALESCE(role, 'hr'), dob, otp, otp_expires_at FROM users WHERE email = %s;",
         (email.strip().lower(),)
     )
     row = cursor.fetchone()
@@ -574,11 +574,11 @@ def get_user_by_email(email: str):
 
 
 def get_user_by_id(user_id: int):
-    """Get user by ID. Returns row: (id, email, hashed_password, full_name, is_active, created_at, role, dob)"""
+    """Get user by ID. Returns row: (id, email, hashed_password, full_name, is_active, created_at, role, dob, otp, otp_expires_at)"""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id, email, hashed_password, full_name, is_active, created_at, COALESCE(role, 'hr'), dob FROM users WHERE id = %s;",
+        "SELECT id, email, hashed_password, full_name, is_active, created_at, COALESCE(role, 'hr'), dob, otp, otp_expires_at FROM users WHERE id = %s;",
         (user_id,)
     )
     row = cursor.fetchone()
@@ -945,4 +945,30 @@ def update_user_password(user_id: int, hashed_password: str):
     """, (hashed_password, user_id))
     conn.commit()
     cur.close()
+    conn.close()
+
+
+def update_user_otp(user_id: int, otp: str, expires_at: datetime):
+    """Update the OTP for a user."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE users SET otp = %s, otp_expires_at = %s WHERE id = %s;",
+        (otp, expires_at, user_id)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def activate_user(user_id: int):
+    """Set a user to active and clear the OTP."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE users SET is_active = TRUE, otp = NULL, otp_expires_at = NULL WHERE id = %s;",
+        (user_id,)
+    )
+    conn.commit()
+    cursor.close()
     conn.close()

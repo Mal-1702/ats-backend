@@ -517,3 +517,48 @@
     color: var(--neon-purple);
     text-decoration: underline;
 }
+
+/* ── OTP Overlay ─────────────────────────────────────────────── */
+.otp-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 10, 18, 0.95);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    padding: 1rem;
+    animation: fadeIn 0.4s ease;
+}
+
+.otp-card {
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 50px rgba(59, 130, 246, 0.2);
+    animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.otp-icon {
+    background: linear-gradient(135deg, #10b981, #059669);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+}
+
+.otp-input {
+    text-align: center;
+    font-size: 1.5rem !important;
+    letter-spacing: 12px;
+    font-weight: 700 !important;
+    color: var(--neon-blue) !important;
+    padding: 1.25rem !important;
+}
+
+.otp-input::placeholder {
+    color: var(--text-muted) !important;
+    letter-spacing: normal;
+    font-size: 0.9rem;
+    font-weight: 400;
+}

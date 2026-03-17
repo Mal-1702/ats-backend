@@ -147,28 +147,30 @@ const ResumeUpload = () => {
                                                 <h3>Selected Files</h3>
                                                 <span className="file-count">{files.length} file(s)</span>
                                             </div>
-                                            {files.map((file, index) => (
-                                                <div key={index} className="file-item">
-                                                    <div className="file-info">
-                                                        <div className="file-icon">
-                                                            <FileText size={24} />
-                                                        </div>
-                                                        <div className="file-details">
-                                                            <div className="file-name">{file.name}</div>
-                                                            <div className="file-size">
-                                                                {(file.size / 1024 / 1024).toFixed(2)} MB
+                                            <div className="file-list-items">
+                                                {files.map((file, index) => (
+                                                    <div key={index} className="file-item">
+                                                        <div className="file-info">
+                                                            <div className="file-icon">
+                                                                <FileText size={24} />
+                                                            </div>
+                                                            <div className="file-details">
+                                                                <div className="file-name">{file.name}</div>
+                                                                <div className="file-size">
+                                                                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                                                                </div>
                                                             </div>
                                                         </div>
+                                                        <button
+                                                            className="remove-file"
+                                                            onClick={() => removeFile(index)}
+                                                            title="Remove file"
+                                                        >
+                                                            <X size={18} />
+                                                        </button>
                                                     </div>
-                                                    <button
-                                                        className="remove-file"
-                                                        onClick={() => removeFile(index)}
-                                                        title="Remove file"
-                                                    >
-                                                        <X size={18} />
-                                                    </button>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                             <button
                                                 className="btn-upload"
                                                 onClick={handleUpload}

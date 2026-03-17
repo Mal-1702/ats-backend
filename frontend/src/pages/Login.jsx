@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, UserPlus } from 'lucide-react';
+import { LogIn, UserPlus, ShieldCheck } from 'lucide-react';
+import { authAPI } from '../services/api';
 import './Login.css';
 
 const Login = () => {
@@ -17,6 +18,8 @@ const Login = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showWelcome, setShowWelcome] = useState(false);
+    const [showOtpScreen, setShowOtpScreen] = useState(false);
+    const [otp, setOtp] = useState('');
     const [username, setUsername] = useState('');
 
     const { login, register } = useAuth();
@@ -37,7 +40,12 @@ const Login = () => {
         setError('');
         setValidationErrors({});
 
-        if (!isLogin) {
+        if (isLogin) {
+            if (!formData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+                setValidationErrors({ email: 'Enter a valid email address' });
+                return;
+            }
+        } else {
             const errs = validateSignup();
             if (Object.keys(errs).length > 0) {
                 setValidationErrors(errs);
@@ -51,25 +59,36 @@ const Login = () => {
             let result;
             if (isLogin) {
                 result = await login(normalizedEmail, formData.password);
+                if (result.success) {
+                    const name = formData.fullName || formData.email.split('@')[0];
+                    setUsername(name);
+                    setTimeout(() => {
+                        setShowWelcome(true);
+                        setTimeout(() => { navigate('/dashboard'); }, 2000);
+                    }, 1500);
+                } else {
+                    setError(result.error);
+                    setLoading(false);
+                }
             } else {
-                result = await register(
-                    normalizedEmail,
-                    formData.password,
-                    formData.fullName.trim(),
-                    formData.dob || null,
-                );
-            }
-
-            if (result.success) {
-                const name = formData.fullName || formData.email.split('@')[0];
-                setUsername(name);
-                setTimeout(() => {
-                    setShowWelcome(true);
-                    setTimeout(() => { navigate('/dashboard'); }, 2000);
-                }, 1500);
-            } else {
-                setError(result.error);
-                setLoading(false);
+                // Register
+                try {
+                    const regResult = await authAPI.register({
+                        email: normalizedEmail,
+                        password: formData.password,
+                        confirm_password: formData.password,
+                        full_name: formData.fullName.trim(),
+                        dob: formData.dob || null,
+                    });
+                    
+                    if (regResult.data) {
+                        setLoading(false);
+                        setShowOtpScreen(true);
+                    }
+                } catch (regError) {
+                    setError(regError.response?.data?.detail || 'Registration failed');
+                    setLoading(false);
+                }
             }
         } catch {
             setError('An unexpected error occurred');
@@ -91,6 +110,37 @@ const Login = () => {
         setValidationErrors({});
     };
 
+    const handleOtpSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        try {
+            const result = await authAPI.verifyOTP(formData.email.trim().toLowerCase(), otp);
+            if (result.data) {
+                // Success! Now login automatically
+                const loginResult = await login(formData.email.trim().toLowerCase(), formData.password);
+                if (loginResult.success) {
+                    setUsername(formData.fullName || formData.email.split('@')[0]);
+                    setLoading(false);
+                    setShowOtpScreen(false);
+                    setTimeout(() => {
+                        setShowWelcome(true);
+                        setTimeout(() => { navigate('/dashboard'); }, 2000);
+                    }, 1000);
+                } else {
+                    setError('Verification successful, but auto-login failed. Please sign in manually.');
+                    setLoading(false);
+                    setShowOtpScreen(false);
+                    setIsLogin(true);
+                }
+            }
+        } catch (otpErr) {
+            setError(otpErr.response?.data?.detail || 'Invalid or expired code');
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="login-page">
             {/* Loading Screen Overlay */}
@@ -110,6 +160,52 @@ const Login = () => {
                         <div className="welcome-icon">✨</div>
                         <h1 className="welcome-title">WELCOME</h1>
                         <h2 className="welcome-username">{username}</h2>
+                    </div>
+                </div>
+            )}
+
+            {/* OTP Screen Overlay */}
+            {showOtpScreen && (
+                <div className="otp-overlay">
+                    <div className="login-card otp-card">
+                        <div className="login-header">
+                            <div className="login-icon otp-icon">
+                                <ShieldCheck size={32} />
+                            </div>
+                            <h1>Verify Gmail</h1>
+                            <p>We've sent a 6-digit code to <strong>{formData.email}</strong></p>
+                        </div>
+
+                        <form onSubmit={handleOtpSubmit} className="login-form">
+                            <div className="form-group">
+                                <input
+                                    type="text"
+                                    name="otp"
+                                    className="form-input otp-input"
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    placeholder="Enter 6-digit code"
+                                    required
+                                    autoFocus
+                                />
+                                <label className="form-label label-active">Verification Code</label>
+                            </div>
+
+                            {error && <div className="error-message">{error}</div>}
+
+                            <button type="submit" className="login-button" disabled={loading}>
+                                {loading ? <div className="spinner" /> : <span>Verify & Activate</span>}
+                            </button>
+                            
+                            <button 
+                                type="button" 
+                                className="toggle-auth-mode" 
+                                style={{ marginTop: '1rem', width: '100%' }}
+                                onClick={() => setShowOtpScreen(false)}
+                            >
+                                Back to Registration
+                            </button>
+                        </form>
                     </div>
                 </div>
             )}

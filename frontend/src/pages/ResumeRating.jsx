@@ -3,6 +3,7 @@ import { Star, Upload, MessageCircle, Send, CheckCircle, TrendingUp, Lightbulb, 
 import { resumesAPI, resumeAnalysisAPI } from '../services/api';
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
+import Sidebar from '../components/Sidebar';
 import './ResumeRating.css';
 
 const ResumeRating = () => {
@@ -167,225 +168,231 @@ const ResumeRating = () => {
     };
 
     return (
-        <div className="resume-rating-page">
-            <div className="rating-header">
-                <Star size={32} className="header-icon" />
-                <div>
-                    <h1>Rate My Resume</h1>
-                    <p>Get AI-powered feedback on resume quality, strengths, and areas for improvement</p>
-                </div>
-            </div>
-
-            {error && (
-                <div className="error-banner">
-                    <span>{error}</span>
-                    <button onClick={() => setError('')}>×</button>
-                </div>
-            )}
-
-            {/* Tab Navigation */}
-            <div className="rating-tabs">
-                <button
-                    className={`tab-button ${activeTab === 'existing' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('existing')}
-                >
-                    <FileText size={18} />
-                    Analyze Existing
-                </button>
-                <button
-                    className={`tab-button ${activeTab === 'upload' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('upload')}
-                >
-                    <Upload size={18} />
-                    Upload & Chat
-                </button>
-            </div>
-
-            {/* Existing Resumes Tab */}
-            {activeTab === 'existing' && (
-                <div className="rating-container">
-                    <div className="selector-panel">
-                        <div className="selector-header">
-                            <h2>Select Resume(s)</h2>
-                            <label className="multi-select-toggle">
-                                <input
-                                    type="checkbox"
-                                    checked={multiSelectMode}
-                                    onChange={(e) => {
-                                        setMultiSelectMode(e.target.checked);
-                                        if (!e.target.checked) setSelectedResumes(prev => prev.slice(0, 1));
-                                    }}
-                                />
-                                <span>Multi-select</span>
-                            </label>
+        <div className="dashboard-layout">
+            <Sidebar />
+            <div className="dashboard-main">
+                <div className="resume-rating-page">
+                    <div className="rating-header">
+                        <Star size={32} className="header-icon" />
+                        <div>
+                            <h1>Rate My Resume</h1>
+                            <p>Get AI-powered feedback on resume quality, strengths, and areas for improvement</p>
                         </div>
+                    </div>
 
-                        <div className="resume-list">
-                            {resumes.map((resume) => (
-                                <div
-                                    key={resume.id}
-                                    className={`resume-card ${selectedResumes.includes(resume.id) ? 'selected' : ''}`}
-                                    onClick={() => handleResumeSelect(resume.id)}
-                                >
-                                    {multiSelectMode && (
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedResumes.includes(resume.id)}
-                                            readOnly
-                                        />
-                                    )}
-                                    <FileText size={20} />
-                                    <div className="resume-info">
-                                        <strong>{resume.filename}</strong>
-                                        <span>{new Date(resume.uploaded_at).toLocaleDateString()}</span>
-                                    </div>
-                                </div>
-                            ))}
+                    {error && (
+                        <div className="error-banner">
+                            <span>{error}</span>
+                            <button onClick={() => setError('')}>×</button>
                         </div>
+                    )}
 
+                    {/* Tab Navigation */}
+                    <div className="rating-tabs">
                         <button
-                            className="analyze-button"
-                            onClick={handleAnalyze}
-                            disabled={loading || selectedResumes.length === 0}
+                            className={`tab-button ${activeTab === 'existing' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('existing')}
                         >
-                            <Star size={18} />
-                            Analyze {selectedResumes.length} Resume{selectedResumes.length !== 1 ? 's' : ''}
+                            <FileText size={18} />
+                            Analyze Existing
+                        </button>
+                        <button
+                            className={`tab-button ${activeTab === 'upload' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('upload')}
+                        >
+                            <Upload size={18} />
+                            Upload & Chat
                         </button>
                     </div>
 
-                    <div className="analysis-panel">
-                        {loading ? (
-                            <div className="loading-state">
-                                <div className="spinner" />
-                                <p>Analyzing resume(s)...</p>
-                            </div>
-                        ) : analysis ? (
-                            analysis.type === 'single' ? (
-                                <SingleAnalysisView result={analysis.result} getScoreColor={getScoreColor} />
-                            ) : (
-                                <BatchAnalysisView results={analysis.results} getScoreColor={getScoreColor} />
-                            )
-                        ) : (
-                            <div className="placeholder-state">
-                                <Star size={64} />
-                                <h2>Select a resume to analyze</h2>
-                                <p>Get detailed AI-powered feedback on resume quality, strengths, and areas for improvement</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* Upload & Chat Tab */}
-            {activeTab === 'upload' && (
-                <div className="upload-chat-container">
-                    {!sessionId ? (
-                        <div className="upload-section">
-                            <div className="upload-card">
-                                <Upload size={48} />
-                                <h2>Upload Your Resume</h2>
-                                <p>Upload a PDF or DOCX file to get instant AI analysis and chat about improvements</p>
-                                <label className="upload-button">
-                                    <input
-                                        type="file"
-                                        accept=".pdf,.docx"
-                                        onChange={handleFileUpload}
-                                        disabled={loading}
-                                    />
-                                    <Upload size={20} />
-                                    {loading ? 'Analyzing...' : 'Choose File'}
-                                </label>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="chat-interface">
-                            <div className="chat-sidebar">
-                                <div className="session-info">
-                                    <FileText size={24} />
-                                    <div>
-                                        <strong>{sessionAnalysis?.filename}</strong>
-                                        <span>Active Session</span>
-                                    </div>
+                    {/* Existing Resumes Tab */}
+                    {activeTab === 'existing' && (
+                        <div className="rating-container">
+                            <div className="selector-panel">
+                                <div className="selector-header">
+                                    <h2>Select Resume(s)</h2>
+                                    <label className="multi-select-toggle">
+                                        <input
+                                            type="checkbox"
+                                            checked={multiSelectMode}
+                                            onChange={(e) => {
+                                                setMultiSelectMode(e.target.checked);
+                                                if (!e.target.checked) setSelectedResumes(prev => prev.slice(0, 1));
+                                            }}
+                                        />
+                                        <span>Multi-select</span>
+                                    </label>
                                 </div>
 
-                                <div className={`session-score ${getScoreColor(sessionAnalysis?.score)}`}>
-                                    <div className="score-value">{sessionAnalysis?.score}</div>
-                                    <div className="score-label">/ 100</div>
-                                </div>
-
-                                <div className="quick-stats">
-                                    <div className="stat">
-                                        <CheckCircle size={16} />
-                                        <span>{sessionAnalysis?.strengths.length || 0} Strengths</span>
-                                    </div>
-                                    <div className="stat">
-                                        <TrendingUp size={16} />
-                                        <span>{sessionAnalysis?.improvements.length || 0} Improvements</span>
-                                    </div>
-                                </div>
-
-                                <button
-                                    className="new-upload-button"
-                                    onClick={() => {
-                                        setSessionId(null);
-                                        setSessionAnalysis(null);
-                                        setChatMessages([]);
-                                        setUploadedFile(null);
-                                    }}
-                                >
-                                    Upload New Resume
-                                </button>
-                            </div>
-
-                            <div className="chat-main">
-                                <div className="chat-messages">
-                                    {chatMessages.map((msg, idx) => (
-                                        <div key={idx} className={`chat-message ${msg.type}`}>
-                                            <div className="message-header">
-                                                {msg.type === 'user' ? 'You' : 'AI Assistant'}
-                                            </div>
-                                            <div className="message-text">
-                                                <ReactMarkdown remarkPlugins={[remarkBreaks]}>
-                                                    {msg.text}
-                                                </ReactMarkdown>
-                                                {msg.isStreaming && <span className="streaming-cursor" />}
+                                <div className="resume-list">
+                                    {resumes.map((resume) => (
+                                        <div
+                                            key={resume.id}
+                                            className={`resume-card ${selectedResumes.includes(resume.id) ? 'selected' : ''}`}
+                                            onClick={() => handleResumeSelect(resume.id)}
+                                        >
+                                            {multiSelectMode && (
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedResumes.includes(resume.id)}
+                                                    readOnly
+                                                />
+                                            )}
+                                            <FileText size={20} />
+                                            <div className="resume-info">
+                                                <strong>{resume.filename}</strong>
+                                                <span>{new Date(resume.uploaded_at).toLocaleDateString()}</span>
                                             </div>
                                         </div>
                                     ))}
-                                    {chatLoading && (
-                                        <div className="chat-message ai loading">
-                                            <MessageCircle size={20} />
-                                            <div className="typing-indicator">
-                                                <span></span><span></span><span></span>
-                                            </div>
-                                        </div>
-                                    )}
-                                    <div ref={chatEndRef} />
                                 </div>
 
-                                <div className="chat-input-container">
-                                    <input
-                                        type="text"
-                                        value={chatInput}
-                                        onChange={(e) => setChatInput(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && !chatLoading && handleSendMessage()}
-                                        placeholder="Ask about your resume... (e.g., 'How can I improve my score?')"
-                                        disabled={chatLoading}
-                                    />
-                                    <button
-                                        onClick={handleSendMessage}
-                                        disabled={!chatInput.trim() || chatLoading}
-                                    >
-                                        <Send size={20} />
-                                    </button>
-                                </div>
+                                <button
+                                    className="analyze-button"
+                                    onClick={handleAnalyze}
+                                    disabled={loading || selectedResumes.length === 0}
+                                >
+                                    <Star size={18} />
+                                    Analyze {selectedResumes.length} Resume{selectedResumes.length !== 1 ? 's' : ''}
+                                </button>
+                            </div>
+
+                            <div className="analysis-panel">
+                                {loading ? (
+                                    <div className="loading-state">
+                                        <div className="spinner" />
+                                        <p>Analyzing resume(s)...</p>
+                                    </div>
+                                ) : analysis ? (
+                                    analysis.type === 'single' ? (
+                                        <SingleAnalysisView result={analysis.result} getScoreColor={getScoreColor} />
+                                    ) : (
+                                        <BatchAnalysisView results={analysis.results} getScoreColor={getScoreColor} />
+                                    )
+                                ) : (
+                                    <div className="placeholder-state">
+                                        <Star size={64} />
+                                        <h2>Select a resume to analyze</h2>
+                                        <p>Get detailed AI-powered feedback on resume quality, strengths, and areas for improvement</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
+
+                    {/* Upload & Chat Tab */}
+                    {activeTab === 'upload' && (
+                        <div className="upload-chat-container">
+                            {!sessionId ? (
+                                <div className="upload-section">
+                                    <div className="upload-card">
+                                        <Upload size={48} />
+                                        <h2>Upload Your Resume</h2>
+                                        <p>Upload a PDF or DOCX file to get instant AI analysis and chat about improvements</p>
+                                        <label className="upload-button">
+                                            <input
+                                                type="file"
+                                                accept=".pdf,.docx"
+                                                onChange={handleFileUpload}
+                                                disabled={loading}
+                                            />
+                                            <Upload size={20} />
+                                            {loading ? 'Analyzing...' : 'Choose File'}
+                                        </label>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="chat-interface">
+                                    <div className="chat-sidebar">
+                                        <div className="session-info">
+                                            <FileText size={24} />
+                                            <div>
+                                                <strong>{sessionAnalysis?.filename}</strong>
+                                                <span>Active Session</span>
+                                            </div>
+                                        </div>
+
+                                        <div className={`session-score ${getScoreColor(sessionAnalysis?.score)}`}>
+                                            <div className="score-value">{sessionAnalysis?.score}</div>
+                                            <div className="score-label">/ 100</div>
+                                        </div>
+
+                                        <div className="quick-stats">
+                                            <div className="stat">
+                                                <CheckCircle size={16} />
+                                                <span>{sessionAnalysis?.strengths.length || 0} Strengths</span>
+                                            </div>
+                                            <div className="stat">
+                                                <TrendingUp size={16} />
+                                                <span>{sessionAnalysis?.improvements.length || 0} Improvements</span>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            className="new-upload-button"
+                                            onClick={() => {
+                                                setSessionId(null);
+                                                setSessionAnalysis(null);
+                                                setChatMessages([]);
+                                                setUploadedFile(null);
+                                            }}
+                                        >
+                                            Upload New Resume
+                                        </button>
+                                    </div>
+
+                                    <div className="chat-main">
+                                        <div className="chat-messages">
+                                            {chatMessages.map((msg, idx) => (
+                                                <div key={idx} className={`chat-message ${msg.type}`}>
+                                                    <div className="message-header">
+                                                        {msg.type === 'user' ? 'You' : 'AI Assistant'}
+                                                    </div>
+                                                    <div className="message-text">
+                                                        <ReactMarkdown remarkPlugins={[remarkBreaks]}>
+                                                            {msg.text}
+                                                        </ReactMarkdown>
+                                                        {msg.isStreaming && <span className="streaming-cursor" />}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {chatLoading && (
+                                                <div className="chat-message ai loading">
+                                                    <MessageCircle size={20} />
+                                                    <div className="typing-indicator">
+                                                        <span></span><span></span><span></span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div ref={chatEndRef} />
+                                        </div>
+
+                                        <div className="chat-input-container">
+                                            <input
+                                                type="text"
+                                                value={chatInput}
+                                                onChange={(e) => setChatInput(e.target.value)}
+                                                onKeyPress={(e) => e.key === 'Enter' && !chatLoading && handleSendMessage()}
+                                                placeholder="Ask about your resume... (e.g., 'How can I improve my score?')"
+                                                disabled={chatLoading}
+                                            />
+                                            <button
+                                                onClick={handleSendMessage}
+                                                disabled={!chatInput.trim() || chatLoading}
+                                            >
+                                                <Send size={20} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
+
 };
 
 // Single resume analysis view component
