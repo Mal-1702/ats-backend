@@ -1,0 +1,143 @@
+.welcome-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #060010;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  z-index: 9999;
+}
+
+.welcome-cubes-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.8;
+  will-change: transform, opacity;
+}
+
+.welcome-content-overlay {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.welcome-text-container {
+  margin-bottom: 3rem;
+  max-width: 800px;
+  padding: 0 1rem;
+}
+
+.welcome-title-heavy {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.welcome-title-brand {
+  font-size: 5.5rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.02em;
+  text-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: fadeInDown 1s ease-out;
+}
+
+.proceed-button-pill {
+  background-color: #ffffff;
+  color: #060010;
+  border: none;
+  padding: 1rem 3.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.proceed-button-pill:hover {
+  transform: scale(1.05) translateY(-3px);
+  background-color: #f0f0f0;
+  box-shadow: 0 15px 30px rgba(255, 255, 255, 0.2);
+}
+
+.proceed-button-pill:active {
+  transform: scale(0.98) translateY(0);
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .welcome-title-brand {
+    font-size: 3.5rem;
+  }
+  
+  .proceed-button-pill {
+    padding: 0.8rem 2.5rem;
+    font-size: 1rem;
+  }
+}
+
+@keyframes slideUpFade {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleFadeIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .welcome-title-sub {
+    font-size: 3rem;
+    letter-spacing: 0.3em;
+  }
+  
+  .proceed-button {
+    padding: 0.8rem 2rem;
+    font-size: 1rem;
+  }
+}

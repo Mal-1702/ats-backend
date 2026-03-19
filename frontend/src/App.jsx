@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
+import WelcomeScreen from './pages/WelcomeScreen';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
@@ -47,8 +48,8 @@ function App() {
             <BrowserRouter>
                 <Routes>
                     <Route path="/login" element={<Login />} />
+                    <Route path="/" element={<WelcomeScreen />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
 
                     <Route
                         path="/dashboard"
@@ -117,7 +118,8 @@ function App() {
                         }
                     />
 
-                    <Route path="/" element={<Navigate to="/dashboard" />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
             </BrowserRouter>
         </AuthProvider>
