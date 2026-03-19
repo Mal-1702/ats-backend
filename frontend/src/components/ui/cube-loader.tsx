@@ -3,7 +3,7 @@ import React from 'react';
 
 export default function CubeLoader() {
   return (
-    <div className='flex flex-col items-center justify-center gap-12 p-12 min-h-screen bg-[#030303] perspective-container fixed inset-0 z-[100]'>
+    <div className='flex flex-col items-center justify-center gap-12 p-12 w-full h-full perspective-container'>
       {/* 3D Scene Wrapper */}
       <div className='relative w-24 h-24 flex items-center justify-center preserve-3d'>
         {/* THE SPINNING CUBE CONTAINER */}

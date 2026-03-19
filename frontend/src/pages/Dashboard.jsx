@@ -14,8 +14,7 @@ const Dashboard = () => {
     const { user } = useAuth();
     const [jobs, setJobs] = useState([]);
     const [resumeCount, setResumeCount] = useState(0);
-    const [isInitialLoading, setIsInitialLoading] = useState(true);
-    const [showGreeting, setShowGreeting] = useState(false);
+    const [loadingStage, setLoadingStage] = useState('cube');
     const [loading, setLoading] = useState(true);
     const [editingJob, setEditingJob] = useState(null);
     const [editSkills, setEditSkills] = useState([]);
@@ -67,10 +66,17 @@ const Dashboard = () => {
     };
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setIsInitialLoading(false);
-            setShowGreeting(true);
-            setTimeout(() => setShowGreeting(false), 2000);
+        let t2, t3;
+        const t1 = setTimeout(() => {
+            setLoadingStage('greeting');
+            
+            t2 = setTimeout(() => {
+                setLoadingStage('fade-out');
+                
+                t3 = setTimeout(() => {
+                    setLoadingStage('complete');
+                }, 800);
+            }, 2000);
         }, 6000);
 
         fetchData();
@@ -78,28 +84,12 @@ const Dashboard = () => {
 
         pollRef.current = setInterval(checkNewResumes, POLL_INTERVAL_MS);
         return () => {
-            clearTimeout(timer);
+            clearTimeout(t1);
+            clearTimeout(t2);
+            clearTimeout(t3);
             clearInterval(pollRef.current);
         };
     }, []);
-
-    if (isInitialLoading) {
-        return <CubeLoader />;
-    }
-
-    if (showGreeting) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-[#030303] text-zinc-50 animate-in fade-in duration-500">
-                <div className="text-center space-y-4">
-                    <span className="text-6xl animate-bounce inline-block">✨</span>
-                    <h1 className="text-4xl font-bold tracking-tight">
-                        Hi, {user?.full_name || user?.name || "User"}
-                    </h1>
-                    <p className="text-zinc-400 text-lg font-light tracking-wide uppercase">Welcome to your dashboard</p>
-                </div>
-            </div>
-        );
-    }
 
     const dismissAlert = () => setNewResumeAlert(0);
 
@@ -221,8 +211,39 @@ const Dashboard = () => {
     ];
 
     return (
-        <div className="dashboard-layout">
-            <Sidebar />
+        <>
+            {loadingStage !== 'complete' && (
+                <div 
+                    className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#030303] text-zinc-50 transition-all duration-1000 ease-in-out"
+                    style={{
+                        opacity: loadingStage === 'fade-out' ? 0 : 1,
+                        transform: loadingStage === 'fade-out' ? 'scale(2.5)' : 'scale(1)',
+                        pointerEvents: loadingStage === 'fade-out' ? 'none' : 'auto'
+                    }}
+                >
+                    {loadingStage === 'cube' ? (
+                        <CubeLoader />
+                    ) : (
+                        <div className="text-center space-y-4 animate-smooth-in">
+                            <span className="text-6xl animate-bounce inline-block">✨</span>
+                            <h1 className="text-4xl font-bold tracking-tight">
+                                Hi, {user?.full_name || user?.name || "User"}
+                            </h1>
+                            <p className="text-zinc-400 text-lg font-light tracking-wide uppercase">Welcome to your dashboard</p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <div 
+                className="dashboard-layout transition-all duration-1000 ease-in-out"
+                style={{
+                    opacity: loadingStage === 'complete' ? 1 : 0,
+                    transform: loadingStage === 'complete' ? 'scale(1)' : 'scale(0.95)',
+                    pointerEvents: loadingStage === 'complete' ? 'auto' : 'none'
+                }}
+            >
+                <Sidebar />
             <div className="dashboard-main">
                 <div className="dashboard-page">
                     <div className="container">
@@ -535,7 +556,8 @@ const Dashboard = () => {
                     </div>
                 </div>
             )}
-        </div>
+            </div>
+        </>
     );
 };
 
