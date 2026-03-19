@@ -3,14 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { jobsAPI, resumesAPI, dashboardAPI } from '../services/api';
 import Sidebar from '../components/Sidebar';
 import { Briefcase, Users, TrendingUp, Plus, Pencil, Trash2, X, Bell, Upload, CheckCircle, AlertCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import CubeLoader from '../components/ui/cube-loader';
 import './Dashboard.css';
 
 const LAST_CHECK_KEY = 'ats_last_dashboard_check';
 const POLL_INTERVAL_MS = 60_000;
 
 const Dashboard = () => {
+    const { user } = useAuth();
     const [jobs, setJobs] = useState([]);
     const [resumeCount, setResumeCount] = useState(0);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [showGreeting, setShowGreeting] = useState(false);
     const [loading, setLoading] = useState(true);
     const [editingJob, setEditingJob] = useState(null);
     const [editSkills, setEditSkills] = useState([]);
@@ -26,15 +31,6 @@ const Dashboard = () => {
     // ─── New-resume alert state ───────────────────────────────
     const [newResumeAlert, setNewResumeAlert] = useState(0);
     const pollRef = useRef(null);
-
-    useEffect(() => {
-        fetchData();
-        checkNewResumes();   // immediate check on mount
-
-        // Poll every 60 s
-        pollRef.current = setInterval(checkNewResumes, POLL_INTERVAL_MS);
-        return () => clearInterval(pollRef.current);
-    }, []);
 
     const fetchData = async () => {
         try {
@@ -69,6 +65,41 @@ const Dashboard = () => {
             // Alert failure must never break the dashboard
         }
     };
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsInitialLoading(false);
+            setShowGreeting(true);
+            setTimeout(() => setShowGreeting(false), 2000);
+        }, 6000);
+
+        fetchData();
+        checkNewResumes();
+
+        pollRef.current = setInterval(checkNewResumes, POLL_INTERVAL_MS);
+        return () => {
+            clearTimeout(timer);
+            clearInterval(pollRef.current);
+        };
+    }, []);
+
+    if (isInitialLoading) {
+        return <CubeLoader />;
+    }
+
+    if (showGreeting) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-[#030303] text-zinc-50 animate-in fade-in duration-500">
+                <div className="text-center space-y-4">
+                    <span className="text-6xl animate-bounce inline-block">✨</span>
+                    <h1 className="text-4xl font-bold tracking-tight">
+                        Hi, {user?.full_name || user?.name || "User"}
+                    </h1>
+                    <p className="text-zinc-400 text-lg font-light tracking-wide uppercase">Welcome to your dashboard</p>
+                </div>
+            </div>
+        );
+    }
 
     const dismissAlert = () => setNewResumeAlert(0);
 

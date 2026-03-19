@@ -24,8 +24,9 @@ import {
   User,
   Calendar,
   ShieldCheck,
-  ArrowRight,
 } from "lucide-react";
+
+import "./Login.css";
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
@@ -143,12 +144,7 @@ export default function Login() {
       if (isLogin) {
         const result = await login(normalizedEmail, formData.password);
         if (result.success) {
-          const name = formData.fullName || formData.email.split('@')[0];
-          setUsername(name);
-          setTimeout(() => {
-            setShowWelcome(true);
-            setTimeout(() => { navigate('/dashboard'); }, 2000);
-          }, 1500);
+          navigate('/dashboard');
         } else {
           setError(result.error);
           setLoading(false);
@@ -204,12 +200,7 @@ export default function Login() {
         const loginResult = await login(formData.email.trim().toLowerCase(), formData.password);
         if (loginResult.success) {
           setUsername(formData.fullName || formData.email.split('@')[0]);
-          setLoading(false);
-          setShowOtpScreen(false);
-          setTimeout(() => {
-            setShowWelcome(true);
-            setTimeout(() => { navigate('/dashboard'); }, 2000);
-          }, 1000);
+          navigate('/dashboard');
         } else {
           setError('Verification successful, but auto-login failed. Please sign in manually.');
           setLoading(false);
@@ -224,42 +215,7 @@ export default function Login() {
   };
 
   return (
-    <section className="fixed inset-0 bg-zinc-950 text-zinc-50 overflow-y-auto">
-      <style>{`
-        .accent-lines{position:absolute;inset:0;pointer-events:none;opacity:.7}
-        .hline,.vline{position:absolute;background:#27272a;will-change:transform,opacity}
-        .hline{left:0;right:0;height:1px;transform:scaleX(0);transform-origin:50% 50%;animation:drawX .8s cubic-bezier(.22,.61,.36,1) forwards}
-        .vline{top:0;bottom:0;width:1px;transform:scaleY(0);transform-origin:50% 0%;animation:drawY .9s cubic-bezier(.22,.61,.36,1) forwards}
-        .hline:nth-child(1){top:18%;animation-delay:.12s}
-        .hline:nth-child(2){top:50%;animation-delay:.22s}
-        .hline:nth-child(3){top:82%;animation-delay:.32s}
-        .vline:nth-child(4){left:22%;animation-delay:.42s}
-        .vline:nth-child(5){left:50%;animation-delay:.54s}
-        .vline:nth-child(6){left:78%;animation-delay:.66s}
-        .hline::after,.vline::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(250,250,250,.24),transparent);opacity:0;animation:shimmer .9s ease-out forwards}
-        .hline:nth-child(1)::after{animation-delay:.12s}
-        .hline:nth-child(2)::after{animation-delay:.22s}
-        .hline:nth-child(3)::after{animation-delay:.32s}
-        .vline:nth-child(4)::after{animation-delay:.42s}
-        .vline:nth-child(5)::after{animation-delay:.54s}
-        .vline:nth-child(6)::after{animation-delay:.66s}
-        @keyframes drawX{0%{transform:scaleX(0);opacity:0}60%{opacity:.95}100%{transform:scaleX(1);opacity:.7}}
-        @keyframes drawY{0%{transform:scaleY(0);opacity:0}60%{opacity:.95}100%{transform:scaleY(1);opacity:.7}}
-        @keyframes shimmer-line{0%{opacity:0}35%{opacity:.25}100%{opacity:0}}
-
-        .card-animate {
-          opacity: 0;
-          transform: translateY(20px);
-          animation: fadeUp 0.8s cubic-bezier(.22,.61,.36,1) 0.4s forwards;
-        }
-        @keyframes fadeUp {
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
-
+    <section className="relative min-h-screen w-full bg-[#030303] text-zinc-50 overflow-x-hidden font-sans selection:bg-zinc-100/10 selection:text-zinc-100">
       {/* Subtle vignette */}
       <div className="fixed inset-0 pointer-events-none [background:radial-gradient(80%_60%_at_50%_30%,rgba(255,255,255,0.06),transparent_60%)]" />
 
@@ -280,15 +236,6 @@ export default function Login() {
       />
 
       {/* Overlays */}
-      {loading && !showWelcome && !showOtpScreen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
-           <div className="text-center">
-               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-zinc-50 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
-               <h2 className="mt-4 text-xl font-semibold tracking-tight text-zinc-50">Setting things up...</h2>
-           </div>
-        </div>
-      )}
-
       {showWelcome && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-lg transition-all duration-1000">
             <span className="text-6xl mb-6">✨</span>
@@ -297,7 +244,7 @@ export default function Login() {
         </div>
       )}
 
-      {showOtpScreen && (
+      {showOtpScreen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
             <Card className="card-animate w-full max-w-sm border-zinc-800 bg-zinc-900/90 backdrop-blur shadow-2xl">
               <CardHeader className="space-y-1 text-center">
@@ -339,175 +286,147 @@ export default function Login() {
               </form>
             </Card>
         </div>
-      )}
+      ) : (
+        /* Main Login Card */
+        <div className="min-h-screen w-full flex items-center justify-center px-4 relative z-10 py-12">
+          <div className="login-card card-animate">
+            <div className="login-header">
+              <h1 className="login-title">
+                {isLogin ? 'Welcome back' : 'Create an account'}
+              </h1>
+              <p className="login-description">
+                {isLogin ? 'Sign in to your account' : 'Join us to start recruiting smarter'}
+              </p>
+            </div>
 
-      {/* Main Login Card */}
-      <div className="min-h-screen w-full grid place-items-center px-4 py-12 relative z-10">
-        <Card className="card-animate w-full max-w-sm border-zinc-800 bg-zinc-900/70 backdrop-blur supports-[backdrop-filter]:bg-zinc-900/60 shadow-xl">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl">
-              {isLogin ? 'Welcome back' : 'Create an account'}
-            </CardTitle>
-            <CardDescription className="text-zinc-400">
-              {isLogin ? 'Sign in to access your dashboard' : 'Join us to start recruiting smarter'}
-            </CardDescription>
-          </CardHeader>
-
-          <form onSubmit={handleSubmit} noValidate>
-            <CardContent className="grid gap-5">
-              
-              {!isLogin && (
-                <>
-                  <div className="grid gap-2">
-                    <Label htmlFor="fullName" className="text-zinc-300">Full Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                      <Input
-                        id="fullName"
-                        name="fullName"
-                        type="text"
-                        placeholder="John Doe"
-                        value={formData.fullName}
-                        onChange={handleChange}
-                        className={`pl-10 bg-zinc-950 border-zinc-800 text-zinc-50 placeholder:text-zinc-600 ${validationErrors.fullName ? 'border-red-500' : ''}`}
-                      />
+            <form onSubmit={handleSubmit} noValidate>
+              <div className="login-content">
+                
+                {!isLogin && (
+                  <>
+                    <div className="form-field">
+                      <label htmlFor="fullName" className="form-label">Full Name</label>
+                      <div className="form-input-wrapper">
+                        <User className="form-input-icon" />
+                        <input
+                          id="fullName"
+                          name="fullName"
+                          type="text"
+                          placeholder="John Doe"
+                          value={formData.fullName}
+                          onChange={handleChange}
+                          className="form-input"
+                        />
+                      </div>
+                      {validationErrors.fullName && <span className="text-xs text-red-500 mt-1 ml-1">{validationErrors.fullName}</span>}
                     </div>
-                    {validationErrors.fullName && <span className="text-xs text-red-400">{validationErrors.fullName}</span>}
-                  </div>
 
-                  <div className="grid gap-2">
-                    <Label htmlFor="dob" className="text-zinc-300">Date of Birth</Label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                      <Input
-                        id="dob"
-                        name="dob"
-                        type="date"
-                        value={formData.dob}
-                        onChange={handleChange}
-                        max={new Date().toISOString().split('T')[0]}
-                        className={`pl-10 bg-zinc-950 border-zinc-800 text-zinc-50 placeholder:text-zinc-600 ${validationErrors.dob ? 'border-red-500' : ''}`}
-                        style={{ colorScheme: 'dark' }}
-                      />
+                    <div className="form-field">
+                      <label htmlFor="dob" className="form-label">Date of Birth</label>
+                      <div className="form-input-wrapper">
+                        <Calendar className="form-input-icon" />
+                        <input
+                          id="dob"
+                          name="dob"
+                          type="date"
+                          value={formData.dob}
+                          onChange={handleChange}
+                          max={new Date().toISOString().split('T')[0]}
+                          className="form-input"
+                          style={{ colorScheme: 'dark' }}
+                        />
+                      </div>
+                      {validationErrors.dob && <span className="text-xs text-red-500 mt-1 ml-1">{validationErrors.dob}</span>}
                     </div>
-                    {validationErrors.dob && <span className="text-xs text-red-400">{validationErrors.dob}</span>}
-                  </div>
-                </>
-              )}
+                  </>
+                )}
 
-              <div className="grid gap-2">
-                <Label htmlFor="email" className="text-zinc-300">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className={`pl-10 bg-zinc-950 border-zinc-800 text-zinc-50 placeholder:text-zinc-600 ${validationErrors.email ? 'border-red-500' : ''}`}
-                  />
+                <div className="form-field">
+                  <label htmlFor="email" className="form-label">Email</label>
+                  <div className="form-input-wrapper">
+                    <Mail className="form-input-icon" />
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="form-input"
+                    />
+                  </div>
+                  {validationErrors.email && <span className="text-xs text-red-500 mt-1 ml-1">{validationErrors.email}</span>}
                 </div>
-                {validationErrors.email && <span className="text-xs text-red-400">{validationErrors.email}</span>}
+
+                <div className="form-field">
+                  <label htmlFor="password" className="form-label">Password</label>
+                  <div className="form-input-wrapper">
+                    <Lock className="form-input-icon" />
+                    <input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="form-input"
+                    />
+                    <button
+                      type="button"
+                      tabIndex="-1"
+                      className="form-input-toggle border-none bg-transparent flex items-center justify-center h-full"
+                      onClick={() => setShowPassword((v) => !v)}
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+                  {validationErrors.password && <span className="text-xs text-red-500 mt-1 ml-1">{validationErrors.password}</span>}
+                </div>
+
+                {isLogin && (
+                    <div className="form-options">
+                      <div className="form-checkbox-wrapper">
+                        <Checkbox
+                          id="remember"
+                          className="h-5 w-5 border-zinc-700 data-[state=checked]:bg-zinc-100 data-[state=checked]:text-zinc-900"
+                        />
+                        <label htmlFor="remember" className="form-label !mb-0 cursor-pointer text-zinc-400 select-none">
+                          Remember me
+                        </label>
+                      </div>
+                      <Link to="/forgot-password" title="Forgot password link" className="form-link">
+                        Forgot password?
+                      </Link>
+                    </div>
+                )}
+
+                {error && (
+                    <div className="bg-red-500/10 border border-red-500/50 text-red-400 text-sm p-4 rounded-lg text-center font-medium animate-in fade-in zoom-in duration-300">
+                      {error}
+                    </div>
+                )}
+
+                <button type="submit" disabled={loading} className="login-button border-none">
+                  {loading ? "Processing..." : "Continue"}
+                </button>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="password" className="text-zinc-300">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={handleChange}
-                    className={`pl-10 pr-10 bg-zinc-950 border-zinc-800 text-zinc-50 placeholder:text-zinc-600 ${validationErrors.password ? 'border-red-500' : ''}`}
-                  />
-                  <button
-                    type="button"
-                    tabIndex="-1"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md text-zinc-400 hover:text-zinc-200"
-                    onClick={() => setShowPassword((v) => !v)}
+              <div className="login-footer">
+                <p className="footer-text">
+                  {isLogin ? "Don't have an account?" : "Already have an account?"}
+                  <button 
+                      type="button" 
+                      onClick={switchMode}
+                      className="footer-link border-none bg-transparent cursor-pointer"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {isLogin ? "Create one" : "Sign in here"}
                   </button>
-                </div>
-                {validationErrors.password && <span className="text-xs text-red-400">{validationErrors.password}</span>}
+                </p>
               </div>
-
-              {!isLogin && (
-                  <div className="grid gap-2">
-                    <Label htmlFor="confirmPassword" className="text-zinc-300">Confirm Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                      <Input
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        className={`pl-10 pr-10 bg-zinc-950 border-zinc-800 text-zinc-50 placeholder:text-zinc-600 ${validationErrors.confirmPassword ? 'border-red-500' : ''}`}
-                      />
-                      <button
-                        type="button"
-                        tabIndex="-1"
-                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md text-zinc-400 hover:text-zinc-200"
-                        onClick={() => setShowConfirmPassword((v) => !v)}
-                      >
-                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                    {validationErrors.confirmPassword && <span className="text-xs text-red-400">{validationErrors.confirmPassword}</span>}
-                  </div>
-              )}
-
-              {isLogin && (
-                  <div className="flex items-center justify-between mt-1">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="remember"
-                        className="border-zinc-700 data-[state=checked]:bg-zinc-50 data-[state=checked]:text-zinc-900"
-                      />
-                      <Label htmlFor="remember" className="text-zinc-400 font-normal">
-                        Remember me
-                      </Label>
-                    </div>
-                    <Link to="/forgot-password" className="text-sm text-zinc-300 hover:text-zinc-100 transition-colors">
-                      Forgot password?
-                    </Link>
-                  </div>
-              )}
-
-              {error && (
-                  <div className="bg-red-500/10 border border-red-500/50 text-red-300 text-sm p-3 rounded-md text-center">
-                    {error}
-                  </div>
-              )}
-
-              <Button type="submit" disabled={loading} className="w-full h-10 rounded-lg bg-zinc-50 text-zinc-900 hover:bg-zinc-200 font-semibold shadow-md active:scale-[0.98] transition-all">
-                {loading ? "Processing..." : (isLogin ? "Sign In" : "Create Account")}
-              </Button>
-
-            </CardContent>
-
-            <CardFooter className="flex items-center justify-center text-sm text-zinc-400 pb-8">
-              {isLogin ? "Don't have an account?" : "Already have an account?"}
-              <button 
-                  type="button" 
-                  onClick={switchMode}
-                  className="ml-1.5 text-zinc-200 hover:text-white font-medium hover:underline focus:outline-none"
-              >
-                {isLogin ? "Create one" : "Sign in here"}
-              </button>
-            </CardFooter>
-          </form>
-        </Card>
-      </div>
+            </form>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
