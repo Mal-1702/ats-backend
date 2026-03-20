@@ -162,13 +162,7 @@ export default function NeuralBackground({
   }, [color, trailOpacity, particleCount, speed]);
 
   return (
-    <div
-      ref={containerRef}
-      className={cn(
-        "absolute inset-0 w-full h-full bg-black overflow-hidden",
-        className
-      )}
-    >
+    <div ref={containerRef} className="absolute inset-0 w-full h-full bg-black overflow-hidden">
       <canvas ref={canvasRef} className="w-full h-full block" />
     </div>
   );
