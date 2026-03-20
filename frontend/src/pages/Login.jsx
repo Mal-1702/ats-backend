@@ -26,6 +26,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import NeuralBackground from "../components/ui/flow-field-background";
 import "./Login.css";
 
 export default function Login() {
@@ -49,66 +50,6 @@ export default function Login() {
 
   const { login, register } = useAuth();
   const navigate = useNavigate();
-
-  // Background Canvas particle logic from user's provided code
-  const canvasRef = useRef(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const setSize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    setSize();
-
-    let ps = [];
-    let raf = 0;
-
-    const make = () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      v: Math.random() * 0.25 + 0.05,
-      o: Math.random() * 0.35 + 0.15,
-    });
-
-    const init = () => {
-      ps = [];
-      const count = Math.floor((canvas.width * canvas.height) / 9000);
-      for (let i = 0; i < count; i++) ps.push(make());
-    };
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ps.forEach((p) => {
-        p.y -= p.v;
-        if (p.y < 0) {
-          p.x = Math.random() * canvas.width;
-          p.y = canvas.height + Math.random() * 40;
-          p.v = Math.random() * 0.25 + 0.05;
-          p.o = Math.random() * 0.35 + 0.15;
-        }
-        ctx.fillStyle = `rgba(250,250,250,${p.o})`;
-        ctx.fillRect(p.x, p.y, 0.7, 2.2);
-      });
-      raf = requestAnimationFrame(draw);
-    };
-
-    const onResize = () => {
-      setSize();
-      init();
-    };
-
-    window.addEventListener("resize", onResize);
-    init();
-    raf = requestAnimationFrame(draw);
-    return () => {
-      window.removeEventListener("resize", onResize);
-      cancelAnimationFrame(raf);
-    };
-  }, []);
 
   const validateSignup = () => {
     const errs = {};
@@ -144,7 +85,12 @@ export default function Login() {
       if (isLogin) {
         const result = await login(normalizedEmail, formData.password);
         if (result.success) {
-          navigate('/dashboard');
+          const name = formData.fullName || formData.email.split('@')[0];
+          setUsername(name);
+          setTimeout(() => {
+            setShowWelcome(true);
+            setTimeout(() => { navigate('/dashboard'); }, 2000);
+          }, 1500);
         } else {
           setError(result.error);
           setLoading(false);
@@ -200,7 +146,12 @@ export default function Login() {
         const loginResult = await login(formData.email.trim().toLowerCase(), formData.password);
         if (loginResult.success) {
           setUsername(formData.fullName || formData.email.split('@')[0]);
-          navigate('/dashboard');
+          setLoading(false);
+          setShowOtpScreen(false);
+          setTimeout(() => {
+            setShowWelcome(true);
+            setTimeout(() => { navigate('/dashboard'); }, 2000);
+          }, 1000);
         } else {
           setError('Verification successful, but auto-login failed. Please sign in manually.');
           setLoading(false);
@@ -215,99 +166,89 @@ export default function Login() {
   };
 
   return (
-    <section className="relative min-h-screen w-full bg-[#030303] text-zinc-50 overflow-x-hidden font-sans selection:bg-zinc-100/10 selection:text-zinc-100">
-      {/* Subtle vignette */}
-      <div className="fixed inset-0 pointer-events-none [background:radial-gradient(80%_60%_at_50%_30%,rgba(255,255,255,0.06),transparent_60%)]" />
-
-      {/* Animated accent lines */}
-      <div className="accent-lines fixed">
-        <div className="hline" />
-        <div className="hline" />
-        <div className="hline" />
-        <div className="vline" />
-        <div className="vline" />
-        <div className="vline" />
+    <div className="relative min-h-screen w-full bg-black">
+      
+      {/* Background Layer */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <NeuralBackground 
+          color="#6366f1"
+          trailOpacity={0.12}
+          particleCount={500}
+          speed={0.7}
+        />
       </div>
 
-      {/* Particles */}
-      <canvas
-        ref={canvasRef}
-        className="fixed inset-0 w-full h-full opacity-50 mix-blend-screen pointer-events-none"
-      />
-
-      {/* Overlays */}
-      {showWelcome && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-lg transition-all duration-1000">
+      {/* Foreground Login UI */}
+      <div className="relative z-10 flex items-center justify-center min-h-screen px-4">
+        {showWelcome && (
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-lg transition-all duration-1000">
             <span className="text-6xl mb-6">✨</span>
             <h1 className="text-4xl font-bold tracking-tight text-zinc-50">WELCOME</h1>
             <h2 className="text-2xl mt-2 text-zinc-400 font-light tracking-wider uppercase">{username}</h2>
-        </div>
-      )}
+          </div>
+        )}
 
-      {showOtpScreen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
-            <Card className="card-animate w-full max-w-sm border-zinc-800 bg-zinc-900/90 backdrop-blur shadow-2xl">
-              <CardHeader className="space-y-1 text-center">
-                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-800/50">
-                      <ShieldCheck className="h-8 w-8 text-zinc-300" />
-                  </div>
-                  <CardTitle className="text-2xl">Verify Email</CardTitle>
-                  <CardDescription className="text-zinc-400">
-                      We've sent a 6-digit code to <br/><strong className="text-zinc-200">{formData.email}</strong>
-                  </CardDescription>
+        {showOtpScreen ? (
+          <div className="w-full max-w-sm">
+            <button
+              onClick={() => setShowOtpScreen(false)}
+              className="mb-4 text-zinc-400 hover:text-white transition-colors flex items-center gap-2 group border-none bg-transparent cursor-pointer"
+            >
+              ← Back to Registration
+            </button>
+            <Card className="card-animate border-zinc-800 bg-zinc-900/90 backdrop-blur-xl shadow-2xl rounded-2xl p-6">
+              <CardHeader className="space-y-1 text-center p-0 mb-6">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-500/10 border border-indigo-500/20">
+                  <ShieldCheck className="h-8 w-8 text-indigo-400" />
+                </div>
+                <CardTitle className="text-2xl font-semibold text-white">Verify Email</CardTitle>
+                <CardDescription className="text-zinc-400">
+                  We've sent a 6-digit code to <br /><strong className="text-zinc-200">{formData.email}</strong>
+                </CardDescription>
               </CardHeader>
               <form onSubmit={handleOtpSubmit}>
-                  <CardContent className="grid gap-4">
-                      <div className="grid gap-2 text-center">
-                          <Input
-                              type="text"
-                              name="otp"
-                              className="text-center text-xl tracking-[0.5em] h-12 bg-zinc-950 border-zinc-800 text-zinc-50"
-                              value={otp}
-                              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                              placeholder="------"
-                              required
-                              autoFocus
-                          />
-                      </div>
-                      {error && <div className="text-red-400 text-sm font-medium text-center">{error}</div>}
-                      <Button type="submit" className="w-full h-10 rounded-lg bg-zinc-50 text-zinc-900 hover:bg-zinc-200 font-semibold" disabled={loading}>
-                          {loading ? "Verifying..." : "Verify & Activate"}
-                      </Button>
-                      <Button 
-                          type="button" 
-                          variant="ghost" 
-                          className="w-full text-zinc-400 hover:text-zinc-50"
-                          onClick={() => setShowOtpScreen(false)}
-                      >
-                          Back to Registration
-                      </Button>
-                  </CardContent>
+                <div className="grid gap-4">
+                  <div className="grid gap-2 text-center">
+                    <Input
+                      type="text"
+                      name="otp"
+                      className="text-center text-xl tracking-[0.5em] h-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-600 focus:ring-indigo-500 rounded-lg"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="------"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  {error && <div className="text-red-400 text-sm font-medium text-center">{error}</div>}
+                  <Button type="submit" className="w-full h-11 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 font-semibold transition-all shadow-lg shadow-indigo-500/20" disabled={loading}>
+                    {loading ? "Verifying..." : "Verify & Activate"}
+                  </Button>
+                </div>
               </form>
             </Card>
-        </div>
-      ) : (
-        /* Main Login Card */
-        <div className="min-h-screen w-full flex items-center justify-center px-4 relative z-10 py-12">
-          <div className="login-card card-animate">
-            <div className="login-header">
-              <h1 className="login-title">
+          </div>
+        ) : (
+          /* Main Login Card - INTEGRATED WITH USER'S REFINED STYLE */
+          <div className="w-full max-w-md bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-xl p-8 card-animate">
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-semibold text-white mb-2">
                 {isLogin ? 'Welcome back' : 'Create an account'}
               </h1>
-              <p className="login-description">
+              <p className="text-sm text-zinc-400 mb-6">
                 {isLogin ? 'Sign in to your account' : 'Join us to start recruiting smarter'}
               </p>
             </div>
 
             <form onSubmit={handleSubmit} noValidate>
-              <div className="login-content">
-                
+              <div className="space-y-4">
+
                 {!isLogin && (
                   <>
                     <div className="form-field">
-                      <label htmlFor="fullName" className="form-label">Full Name</label>
-                      <div className="form-input-wrapper">
-                        <User className="form-input-icon" />
+                      <label htmlFor="fullName" className="text-xs text-zinc-400 mb-1 block tracking-wide">Full Name</label>
+                      <div className="form-input-wrapper relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                         <input
                           id="fullName"
                           name="fullName"
@@ -315,16 +256,16 @@ export default function Login() {
                           placeholder="John Doe"
                           value={formData.fullName}
                           onChange={handleChange}
-                          className="form-input"
+                          className="w-full rounded-lg bg-zinc-800 border border-zinc-700 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
                         />
                       </div>
                       {validationErrors.fullName && <span className="text-xs text-red-500 mt-1 ml-1">{validationErrors.fullName}</span>}
                     </div>
 
                     <div className="form-field">
-                      <label htmlFor="dob" className="form-label">Date of Birth</label>
-                      <div className="form-input-wrapper">
-                        <Calendar className="form-input-icon" />
+                      <label htmlFor="dob" className="text-xs text-zinc-400 mb-1 block tracking-wide">Date of Birth</label>
+                      <div className="form-input-wrapper relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                         <input
                           id="dob"
                           name="dob"
@@ -332,8 +273,7 @@ export default function Login() {
                           value={formData.dob}
                           onChange={handleChange}
                           max={new Date().toISOString().split('T')[0]}
-                          className="form-input"
-                          style={{ colorScheme: 'dark' }}
+                          className="w-full rounded-lg bg-zinc-800 border border-zinc-700 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition [color-scheme:dark]"
                         />
                       </div>
                       {validationErrors.dob && <span className="text-xs text-red-500 mt-1 ml-1">{validationErrors.dob}</span>}
@@ -342,9 +282,9 @@ export default function Login() {
                 )}
 
                 <div className="form-field">
-                  <label htmlFor="email" className="form-label">Email</label>
-                  <div className="form-input-wrapper">
-                    <Mail className="form-input-icon" />
+                  <label htmlFor="email" className="text-xs text-zinc-400 mb-1 block tracking-wide">Email</label>
+                  <div className="form-input-wrapper relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                     <input
                       id="email"
                       name="email"
@@ -352,16 +292,16 @@ export default function Login() {
                       placeholder="you@example.com"
                       value={formData.email}
                       onChange={handleChange}
-                      className="form-input"
+                      className="w-full rounded-lg bg-zinc-800 border border-zinc-700 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
                     />
                   </div>
                   {validationErrors.email && <span className="text-xs text-red-500 mt-1 ml-1">{validationErrors.email}</span>}
                 </div>
 
                 <div className="form-field">
-                  <label htmlFor="password" className="form-label">Password</label>
-                  <div className="form-input-wrapper">
-                    <Lock className="form-input-icon" />
+                  <label htmlFor="password" className="text-xs text-zinc-400 mb-1 block tracking-wide">Password</label>
+                  <div className="form-input-wrapper relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                     <input
                       id="password"
                       name="password"
@@ -369,55 +309,55 @@ export default function Login() {
                       placeholder="••••••••"
                       value={formData.password}
                       onChange={handleChange}
-                      className="form-input"
+                      className="w-full rounded-lg bg-zinc-800 border border-zinc-700 py-2.5 pl-10 pr-10 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
                     />
                     <button
                       type="button"
                       tabIndex="-1"
-                      className="form-input-toggle border-none bg-transparent flex items-center justify-center h-full"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors border-none bg-transparent cursor-pointer"
                       onClick={() => setShowPassword((v) => !v)}
                     >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                   {validationErrors.password && <span className="text-xs text-red-500 mt-1 ml-1">{validationErrors.password}</span>}
                 </div>
 
                 {isLogin && (
-                    <div className="form-options">
-                      <div className="form-checkbox-wrapper">
-                        <Checkbox
-                          id="remember"
-                          className="h-5 w-5 border-zinc-700 data-[state=checked]:bg-zinc-100 data-[state=checked]:text-zinc-900"
-                        />
-                        <label htmlFor="remember" className="form-label !mb-0 cursor-pointer text-zinc-400 select-none">
-                          Remember me
-                        </label>
-                      </div>
-                      <Link to="/forgot-password" title="Forgot password link" className="form-link">
-                        Forgot password?
-                      </Link>
+                  <div className="flex items-center justify-between text-sm text-zinc-400 mt-3 px-1">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="remember"
+                        className="h-4 w-4 border-zinc-700 data-[state=checked]:bg-indigo-500 data-[state=checked]:text-white"
+                      />
+                      <label htmlFor="remember" className="cursor-pointer select-none">
+                        Remember me
+                      </label>
                     </div>
+                    <Link to="/forgot-password" title="Forgot password link" className="hover:text-indigo-400 transition-colors no-underline">
+                      Forgot password?
+                    </Link>
+                  </div>
                 )}
 
                 {error && (
-                    <div className="bg-red-500/10 border border-red-500/50 text-red-400 text-sm p-4 rounded-lg text-center font-medium animate-in fade-in zoom-in duration-300">
-                      {error}
-                    </div>
+                  <div className="bg-red-500/10 border border-red-500/50 text-red-400 text-sm p-4 rounded-lg text-center font-medium animate-in fade-in zoom-in duration-300">
+                    {error}
+                  </div>
                 )}
 
-                <button type="submit" disabled={loading} className="login-button border-none">
+                <button type="submit" disabled={loading} className="w-full mt-6 bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 rounded-lg transition-all duration-200 shadow-lg shadow-indigo-600/20 active:scale-[0.98]">
                   {loading ? "Processing..." : "Continue"}
                 </button>
               </div>
 
-              <div className="login-footer">
-                <p className="footer-text">
+              <div className="mt-8 text-center pt-6 border-t border-zinc-800/50">
+                <p className="text-sm text-zinc-500">
                   {isLogin ? "Don't have an account?" : "Already have an account?"}
-                  <button 
-                      type="button" 
-                      onClick={switchMode}
-                      className="footer-link border-none bg-transparent cursor-pointer"
+                  <button
+                    type="button"
+                    onClick={switchMode}
+                    className="ml-1 text-indigo-400 hover:text-indigo-300 font-semibold border-none bg-transparent cursor-pointer transition-colors"
                   >
                     {isLogin ? "Create one" : "Sign in here"}
                   </button>
@@ -425,8 +365,9 @@ export default function Login() {
               </div>
             </form>
           </div>
-        </div>
-      )}
-    </section>
+        )}
+      </div>
+    </div>
   );
 }
+
