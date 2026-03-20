@@ -1,65 +1,24 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Briefcase, Upload, BarChart3, FileText, Home, Star, Settings } from 'lucide-react';
-import './Sidebar.css';
-
-const ROLE_LABELS = { ceo: 'CEO', admin: 'Admin', hr: 'HR' };
-const ROLE_BADGE_CLASS = { ceo: 'badge-ceo', admin: 'badge-admin', hr: 'badge-hr' };
-const MIN_WIDTH = 180;
-const MAX_WIDTH = 420;
-const DEFAULT_WIDTH = 260;
-const STORAGE_KEY = 'ats_sidebar_width';
+import { 
+  LogOut, 
+  Briefcase, 
+  Upload, 
+  FileText, 
+  Home, 
+  Star, 
+  Settings, 
+  ChevronsRight, 
+  BarChart3,
+  LayoutDashboard
+} from 'lucide-react';
 
 const Sidebar = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-
-    const [sidebarWidth, setSidebarWidth] = useState(() => {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        return stored ? parseInt(stored, 10) : DEFAULT_WIDTH;
-    });
-    const [isDragging, setIsDragging] = useState(false);
-    const dragStartX = useRef(null);
-    const dragStartWidth = useRef(null);
-
-    // Sync CSS variable whenever width changes
-    useEffect(() => {
-        document.documentElement.style.setProperty('--sidebar-width', `${sidebarWidth}px`);
-    }, [sidebarWidth]);
-
-    const onMouseDown = useCallback((e) => {
-        e.preventDefault();
-        dragStartX.current = e.clientX;
-        dragStartWidth.current = sidebarWidth;
-        setIsDragging(true);
-    }, [sidebarWidth]);
-
-    useEffect(() => {
-        if (!isDragging) return;
-
-        const onMouseMove = (e) => {
-            const delta = e.clientX - dragStartX.current;
-            const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, dragStartWidth.current + delta));
-            setSidebarWidth(newWidth);
-        };
-
-        const onMouseUp = () => {
-            setIsDragging(false);
-            setSidebarWidth(prev => {
-                localStorage.setItem(STORAGE_KEY, prev);
-                return prev;
-            });
-        };
-
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
-        return () => {
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-        };
-    }, [isDragging]);
+    const [open, setOpen] = useState(true);
 
     const handleLogout = () => {
         logout();
@@ -67,84 +26,119 @@ const Sidebar = () => {
     };
 
     const navItems = [
-        { path: '/dashboard', icon: <Home size={20} />, label: 'Dashboard' },
-        { path: '/upload', icon: <Upload size={20} />, label: 'Upload Resume' },
-        { path: '/resumes', icon: <FileText size={20} />, label: 'View Resumes' },
-        { path: '/rate-resume', icon: <Star size={20} />, label: 'Rate My Resume' },
-        { path: '/jobs/create', icon: <Briefcase size={20} />, label: 'Create Job' },
+        { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+        { path: '/upload', icon: Upload, label: 'Upload Resume' },
+        { path: '/resumes', icon: FileText, label: 'View Resumes' },
+        { path: '/rate-resume', icon: Star, label: 'Rate Resume' },
+        { path: '/jobs/create', icon: Briefcase, label: 'Create Job' },
     ];
 
-    const collapsed = sidebarWidth < 220;
-
     return (
-        <aside className="sidebar" style={{ width: sidebarWidth }}>
-            <div className="sidebar-content">
-                {/* Brand */}
-                <div className="sidebar-brand">
-                    <div className="brand-icon">
-                        <BarChart3 size={32} />
+        <aside 
+            className={`sticky top-0 h-screen shrink-0 border-r border-slate-800/60 transition-all duration-300 ease-in-out z-40 ${
+                open ? 'w-64' : 'w-20'
+            } bg-slate-950 p-4 shadow-2xl flex flex-col`}
+        >
+            {/* Branding */}
+            <div className="mb-10 px-2 py-2">
+                <div className="flex items-center gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 font-bold text-white shadow-lg shadow-blue-500/20">
+                        <BarChart3 size={24} />
                     </div>
-                    {!collapsed && <h2>ATS Pro</h2>}
-                </div>
-
-                {/* Navigation */}
-                <nav className="sidebar-nav">
-                    {navItems.map((item) => (
-                        <Link
-                            key={item.path}
-                            to={item.path}
-                            className={`sidebar-link ${location.pathname === item.path ? 'active' : ''}`}
-                            title={collapsed ? item.label : ''}
-                        >
-                            <span className="link-icon">{item.icon}</span>
-                            {!collapsed && <span className="link-label">{item.label}</span>}
-                        </Link>
-                    ))}
-
-                    {/* CEO-only Settings link */}
-                    {user?.role === 'ceo' && (
-                        <Link
-                            to="/settings"
-                            className={`sidebar-link sidebar-link--settings ${location.pathname === '/settings' ? 'active' : ''}`}
-                            title={collapsed ? 'Settings' : ''}
-                        >
-                            <span className="link-icon"><Settings size={20} /></span>
-                            {!collapsed && <span className="link-label">Settings</span>}
-                        </Link>
-                    )}
-                </nav>
-
-                {/* User Section */}
-                <div className="sidebar-footer">
-                    <div className="user-info">
-                        <div className="user-avatar">
-                            {user?.email?.charAt(0).toUpperCase()}
+                    {open && (
+                        <div className="transition-opacity duration-300">
+                            <span className="block text-base font-black tracking-tight text-white uppercase italic">ATS PRO</span>
+                            <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-widest">Enterprise Suite</span>
                         </div>
-                        {!collapsed && (
-                            <div className="user-details">
-                                <span className="user-email">{user?.email}</span>
-                                {user?.role && (
-                                    <span className={`role-badge-sidebar ${ROLE_BADGE_CLASS[user.role] || 'badge-hr'}`}>
-                                        {ROLE_LABELS[user.role] || user.role}
-                                    </span>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                    <button onClick={handleLogout} className="btn-logout-sidebar">
-                        <LogOut size={18} />
-                        {!collapsed && <span>Logout</span>}
-                    </button>
+                    )}
                 </div>
             </div>
 
-            {/* Drag-to-resize handle */}
-            <div
-                className={`sidebar-resize-handle${isDragging ? ' dragging' : ''}`}
-                onMouseDown={onMouseDown}
-                title="Drag to resize"
-            />
+            {/* Navigation */}
+            <nav className="flex-1 space-y-2 overflow-y-auto custom-scrollbar pr-1">
+                {navItems.map((item) => (
+                    <NavItem 
+                        key={item.path}
+                        {...item}
+                        active={location.pathname === item.path}
+                        open={open}
+                        navigate={navigate}
+                    />
+                ))}
+
+                <div className="my-4 border-t border-slate-800/50" />
+
+                <NavItem 
+                    path="/settings"
+                    icon={Settings}
+                    label="Settings"
+                    active={location.pathname === '/settings'}
+                    open={open}
+                    navigate={navigate}
+                />
+            </nav>
+
+            {/* Footer / User */}
+            <div className="mt-auto pt-6 border-t border-slate-800/50">
+                {open && (
+                    <div className="flex items-center gap-3 px-3 py-4 mb-4 rounded-2xl bg-slate-900/50 border border-slate-800/50 hover:bg-slate-900 transition-colors">
+                        <div className="size-10 shrink-0 rounded-full bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-sm">
+                            {user?.email?.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <span className="block text-sm font-bold text-white truncate">{user?.full_name || "User"}</span>
+                            <span className="block text-xs text-slate-500 truncate">{user?.email}</span>
+                        </div>
+                    </div>
+                )}
+                
+                <button 
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-300"
+                >
+                    <LogOut size={20} className={`shrink-0 ${!open && "mx-auto"}`} />
+                    {open && <span className="text-sm font-bold">Logout</span>}
+                </button>
+
+                <button
+                    onClick={() => setOpen(!open)}
+                    className="mt-4 flex items-center justify-center w-full p-2 text-slate-600 hover:text-slate-400 hover:bg-slate-900/50 rounded-lg transition-all"
+                >
+                    <ChevronsRight
+                        size={18}
+                        className={`transition-transform duration-500 ${open ? "rotate-180" : ""}`}
+                    />
+                </button>
+            </div>
         </aside>
+    );
+};
+
+const NavItem = ({ path, icon: Icon, label, active, open, navigate }) => {
+    return (
+        <button
+            onClick={() => navigate(path)}
+            className={`relative flex h-11 w-full items-center rounded-xl transition-all duration-300 group ${
+                active 
+                    ? "bg-blue-600/10 text-blue-400 border border-blue-500/20 shadow-[0_0_15px_-5px_rgba(59,130,246,0.2)]" 
+                    : "text-slate-400 hover:bg-slate-900 hover:text-white border border-transparent"
+            }`}
+            title={!open ? label : ''}
+        >
+            <div className={`grid h-full w-14 shrink-0 place-content-center transition-colors ${active ? "text-blue-400" : "group-hover:text-white text-slate-500"}`}>
+                <Icon size={20} className={active ? "animate-pulse" : ""} />
+            </div>
+            
+            {open && (
+                <span className="text-[13px] font-bold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300">
+                    {label}
+                </span>
+            )}
+
+            {active && (
+                <div className={`absolute ${open ? "right-3" : "right-1"} h-1.5 w-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]`} />
+            )}
+        </button>
     );
 };
 
