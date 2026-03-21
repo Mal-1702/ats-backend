@@ -2,16 +2,15 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jobsAPI } from '../services/api';
 import Sidebar from '../components/Sidebar';
-import { Briefcase, Plus, X, AlertCircle } from 'lucide-react';
-import './JobCreate.css';
+import { Briefcase, Plus, X, AlertCircle, Sparkles, Target, Zap } from 'lucide-react';
 
 // ── Priority configuration ────────────────────────────────────────────────
 const PRIORITY_LEVELS = [
-    { label: 'Critical', value: 1.00, color: '#ef4444', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.4)' },
-    { label: 'High', value: 0.75, color: '#f97316', bg: 'rgba(249,115,22,0.15)', border: 'rgba(249,115,22,0.4)' },
-    { label: 'Medium', value: 0.50, color: '#eab308', bg: 'rgba(234,179,8,0.15)', border: 'rgba(234,179,8,0.4)' },
-    { label: 'Low', value: 0.25, color: '#06b6d4', bg: 'rgba(6,182,212,0.15)', border: 'rgba(6,182,212,0.4)' },
-    { label: 'Optional', value: 0.10, color: '#6b7280', bg: 'rgba(107,114,128,0.15)', border: 'rgba(107,114,128,0.4)' },
+    { label: 'Critical', value: 1.00, tw: 'text-red-400 bg-red-500/10 border-red-500/30', bar: 'bg-red-500', dot: 'bg-red-400' },
+    { label: 'High',     value: 0.75, tw: 'text-orange-400 bg-orange-500/10 border-orange-500/30', bar: 'bg-orange-500', dot: 'bg-orange-400' },
+    { label: 'Medium',   value: 0.50, tw: 'text-amber-400 bg-amber-500/10 border-amber-500/30', bar: 'bg-amber-500', dot: 'bg-amber-400' },
+    { label: 'Low',      value: 0.25, tw: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30', bar: 'bg-cyan-500', dot: 'bg-cyan-400' },
+    { label: 'Optional', value: 0.10, tw: 'text-slate-400 bg-slate-500/10 border-slate-500/30', bar: 'bg-slate-500', dot: 'bg-slate-400' },
 ];
 
 function getPriorityConfig(priority) {
@@ -29,14 +28,14 @@ function SkillCard({ skillObj, onRemove, onPriorityChange }) {
     const barW = Math.round(priority * 100);
 
     return (
-        <div className="skill-priority-card" style={{ borderColor: cfg.border, background: cfg.bg }}>
+        <div className={`rounded-2xl border p-4 transition-all duration-300 ${cfg.tw}`}>
             {/* Top row: name + remove */}
-            <div className="skill-card-header">
-                <span className="skill-card-name">{skill}</span>
+            <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-black text-white truncate mr-2">{skill}</span>
                 <button
                     type="button"
-                    className="skill-card-remove"
                     onClick={() => onRemove(skill)}
+                    className="p-1 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                     aria-label={`Remove ${skill}`}
                 >
                     <X size={14} />
@@ -44,10 +43,10 @@ function SkillCard({ skillObj, onRemove, onPriorityChange }) {
             </div>
 
             {/* Priority bar */}
-            <div className="priority-bar-track">
+            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-3">
                 <div
-                    className="priority-bar-fill"
-                    style={{ width: `${barW}%`, background: cfg.color }}
+                    className={`h-full rounded-full transition-all duration-300 ${cfg.bar}`}
+                    style={{ width: `${barW}%` }}
                 />
             </div>
 
@@ -59,32 +58,33 @@ function SkillCard({ skillObj, onRemove, onPriorityChange }) {
                 step="0.01"
                 value={priority}
                 onChange={(e) => onPriorityChange(skill, parseFloat(e.target.value))}
-                className="priority-slider"
-                style={{ '--thumb-color': cfg.color, '--track-color': cfg.border }}
+                className="w-full h-1 accent-blue-500 appearance-none bg-slate-800 rounded-full cursor-pointer mb-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer"
                 aria-label={`Priority for ${skill}`}
             />
 
             {/* Level chips */}
-            <div className="priority-chips">
-                {PRIORITY_LEVELS.map((lvl) => (
-                    <button
-                        key={lvl.label}
-                        type="button"
-                        className={`priority-chip ${Math.abs(priority - lvl.value) < 0.13 ? 'active' : ''}`}
-                        style={
-                            Math.abs(priority - lvl.value) < 0.13
-                                ? { background: lvl.bg, borderColor: lvl.border, color: lvl.color }
-                                : {}
-                        }
-                        onClick={() => onPriorityChange(skill, lvl.value)}
-                    >
-                        {lvl.label}
-                    </button>
-                ))}
+            <div className="flex flex-wrap gap-1.5 mb-2">
+                {PRIORITY_LEVELS.map((lvl) => {
+                    const isActive = Math.abs(priority - lvl.value) < 0.13;
+                    return (
+                        <button
+                            key={lvl.label}
+                            type="button"
+                            className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border transition-all ${
+                                isActive
+                                    ? lvl.tw
+                                    : 'text-slate-600 border-slate-800 bg-slate-950/60 hover:text-slate-400 hover:border-slate-700'
+                            }`}
+                            onClick={() => onPriorityChange(skill, lvl.value)}
+                        >
+                            {lvl.label}
+                        </button>
+                    );
+                })}
             </div>
 
             {/* Current label */}
-            <div className="priority-label" style={{ color: cfg.color }}>
+            <div className={`text-[11px] font-black ${cfg.tw.split(' ')[0]}`}>
                 {barW}% — {cfg.label}
             </div>
         </div>
@@ -181,71 +181,96 @@ const JobCreate = () => {
     return (
         <div className="flex min-h-screen w-full bg-slate-950 text-slate-50 overflow-hidden font-sans">
             <Sidebar />
-            <div className="flex-1 min-w-0 overflow-auto custom-scrollbar relative">
-                <div className="container job-create-container">
-                    <div className="job-create-header">
-                        <Briefcase size={32} />
-                        <h1>Create New Job</h1>
-                        <p>Define the position and set skill priorities for smarter candidate ranking</p>
+
+            <main className="flex-1 min-w-0 overflow-auto custom-scrollbar relative p-8 lg:p-12">
+                <div className="max-w-3xl mx-auto">
+
+                    {/* ── HEADER ────────────────────────────────── */}
+                    <div className="mb-10">
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="size-2 bg-blue-500 rounded-full animate-pulse" />
+                            <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase">Job Builder</span>
+                        </div>
+                        <h1 className="text-4xl font-black text-white tracking-tighter leading-none mb-2">Create New Job</h1>
+                        <p className="text-slate-400 text-sm font-medium">Define the position and set skill priorities for smarter candidate ranking</p>
                     </div>
 
-                    <div className="job-create-card">
-                        <form onSubmit={handleSubmit}>
+                    {/* ── ERROR BANNER ──────────────────────────── */}
+                    {error && (
+                        <div className="mb-6 flex items-center gap-3 p-5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold animate-in fade-in duration-300">
+                            <AlertCircle size={20} className="shrink-0" />
+                            {error}
+                            <button onClick={() => setError('')} className="ml-auto p-1 hover:text-white transition-colors"><X size={16} /></button>
+                        </div>
+                    )}
 
-                            {/* Job Title */}
-                            <div className="form-group">
-                                <label className="form-label">Job Title *</label>
+                    {/* ── FORM CARD ─────────────────────────────── */}
+                    <form onSubmit={handleSubmit}>
+                        <div className="space-y-8">
+
+                            {/* ── Job Title ────────────────────────── */}
+                            <div className="bg-slate-900/40 border border-slate-800 rounded-[2rem] p-8">
+                                <div className="flex items-center gap-2 mb-5">
+                                    <Briefcase size={16} className="text-blue-400" />
+                                    <label className="text-xs font-black text-slate-300 uppercase tracking-[0.15em]">Job Title *</label>
+                                </div>
                                 <input
                                     type="text"
-                                    className="form-input"
                                     value={formData.title}
                                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                     required
                                     placeholder="e.g., Senior Python Developer"
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-sm text-white font-medium placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:shadow-[0_0_15px_-5px_rgba(59,130,246,0.15)] transition-all"
                                 />
                             </div>
 
-                            {/* Required Skills + Priority */}
-                            <div className="form-group">
-                                <label className="form-label">
-                                    Required Skills *
-                                    <span className="form-label-hint"> — set importance for each skill</span>
-                                </label>
+                            {/* ── Required Skills + Priority ───────── */}
+                            <div className="bg-slate-900/40 border border-slate-800 rounded-[2rem] p-8">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Target size={16} className="text-blue-400" />
+                                    <label className="text-xs font-black text-slate-300 uppercase tracking-[0.15em]">Required Skills *</label>
+                                </div>
+                                <p className="text-[11px] text-slate-500 font-medium mb-5">Set importance level for each skill — affects candidate ranking</p>
 
-                                <div className="tag-input-container">
+                                {/* Input + Add */}
+                                <div className="flex gap-3 mb-5">
                                     <input
                                         type="text"
-                                        className="form-input"
                                         value={currentSkill}
                                         onChange={(e) => setCurrentSkill(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') { e.preventDefault(); addSkill(); }
-                                        }}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSkill(); } }}
                                         placeholder="Type a skill and press Enter or click Add"
+                                        className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-5 py-3.5 text-sm text-white font-medium placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 transition-all"
                                     />
                                     <button
                                         type="button"
-                                        className="btn btn-secondary btn-sm"
                                         onClick={addSkill}
+                                        className="flex items-center gap-1.5 px-5 py-3.5 rounded-2xl text-xs font-black bg-blue-600/10 text-blue-400 border border-blue-500/30 hover:bg-blue-600/20 transition-all active:scale-95"
                                     >
-                                        <Plus size={16} />
+                                        <Plus size={14} />
                                         Add
                                     </button>
                                 </div>
 
                                 {/* Priority summary stats */}
                                 {skillObjs.length > 0 && (
-                                    <div className="priority-stats">
-                                        <span className="pstat critical">{criticalCount} Critical</span>
-                                        <span className="pstat high">{highCount} High</span>
-                                        <span className="pstat optional">{optionalCount} Optional</span>
-                                        <span className="pstat total">{skillObjs.length} total skills</span>
+                                    <div className="flex flex-wrap gap-2 mb-5">
+                                        {criticalCount > 0 && (
+                                            <span className="text-[10px] font-black px-2.5 py-1 rounded-lg text-red-400 bg-red-500/10 border border-red-500/20">{criticalCount} Critical</span>
+                                        )}
+                                        {highCount > 0 && (
+                                            <span className="text-[10px] font-black px-2.5 py-1 rounded-lg text-orange-400 bg-orange-500/10 border border-orange-500/20">{highCount} High</span>
+                                        )}
+                                        {optionalCount > 0 && (
+                                            <span className="text-[10px] font-black px-2.5 py-1 rounded-lg text-slate-400 bg-slate-500/10 border border-slate-500/20">{optionalCount} Optional</span>
+                                        )}
+                                        <span className="text-[10px] font-black px-2.5 py-1 rounded-lg text-blue-400 bg-blue-500/10 border border-blue-500/20">{skillObjs.length} total</span>
                                     </div>
                                 )}
 
                                 {/* Skill cards grid */}
                                 {skillObjs.length > 0 ? (
-                                    <div className="skills-priority-grid">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {skillObjs.map((s) => (
                                             <SkillCard
                                                 key={s.skill}
@@ -256,98 +281,103 @@ const JobCreate = () => {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="skills-empty-hint">
-                                        <AlertCircle size={16} />
+                                    <div className="flex items-center gap-3 p-5 rounded-2xl bg-slate-950/60 border border-dashed border-slate-800 text-slate-500 text-xs font-medium">
+                                        <Sparkles size={16} className="text-slate-600 shrink-0" />
                                         <span>Add skills above — each skill can be individually prioritised from Critical to Optional</span>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Keywords */}
-                            <div className="form-group">
-                                <label className="form-label">Keywords <span className="form-label-optional">(optional)</span></label>
-                                <div className="tag-input-container">
+                            {/* ── Keywords ─────────────────────────── */}
+                            <div className="bg-slate-900/40 border border-slate-800 rounded-[2rem] p-8">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Zap size={16} className="text-blue-400" />
+                                    <label className="text-xs font-black text-slate-300 uppercase tracking-[0.15em]">Keywords</label>
+                                    <span className="text-[10px] text-slate-600 font-medium ml-1">(optional)</span>
+                                </div>
+                                <p className="text-[11px] text-slate-500 font-medium mb-5">Add keywords to help match candidates more precisely</p>
+
+                                <div className="flex gap-3 mb-4">
                                     <input
                                         type="text"
-                                        className="form-input"
                                         value={currentKeyword}
                                         onChange={(e) => setCurrentKeyword(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') { e.preventDefault(); addKeyword(); }
-                                        }}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addKeyword(); } }}
                                         placeholder="e.g., microservices, cloud, startup"
+                                        className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-5 py-3.5 text-sm text-white font-medium placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 transition-all"
                                     />
                                     <button
                                         type="button"
-                                        className="btn btn-secondary btn-sm"
                                         onClick={addKeyword}
+                                        className="flex items-center gap-1.5 px-5 py-3.5 rounded-2xl text-xs font-black bg-blue-600/10 text-blue-400 border border-blue-500/30 hover:bg-blue-600/20 transition-all active:scale-95"
                                     >
-                                        <Plus size={16} />
+                                        <Plus size={14} />
                                         Add
                                     </button>
                                 </div>
-                                <div className="tags-list">
-                                    {formData.keywords.map((kw, idx) => (
-                                        <span key={idx} className="tag">
-                                            {kw}
-                                            <button type="button" onClick={() => removeKeyword(kw)}>
-                                                <X size={14} />
-                                            </button>
-                                        </span>
-                                    ))}
+
+                                {formData.keywords.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {formData.keywords.map((kw, idx) => (
+                                            <span key={idx} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-violet-500/10 text-violet-300 border border-violet-500/20 rounded-xl">
+                                                {kw}
+                                                <button type="button" onClick={() => removeKeyword(kw)} className="text-violet-400/60 hover:text-white transition-colors">
+                                                    <X size={12} />
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ── Min Experience ──────────────────────── */}
+                            <div className="bg-slate-900/40 border border-slate-800 rounded-[2rem] p-8">
+                                <div className="flex items-center gap-2 mb-5">
+                                    <Briefcase size={16} className="text-blue-400" />
+                                    <label className="text-xs font-black text-slate-300 uppercase tracking-[0.15em]">Minimum Experience (Years) *</label>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <input
+                                        type="number"
+                                        value={formData.min_experience}
+                                        onChange={(e) => setFormData({ ...formData, min_experience: parseInt(e.target.value) || 0 })}
+                                        required
+                                        min="0"
+                                        max="30"
+                                        className="w-32 bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-sm text-white font-bold text-center placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    />
+                                    <span className="text-xs text-slate-500 font-medium">years of professional experience</span>
                                 </div>
                             </div>
 
-                            {/* Min Experience */}
-                            <div className="form-group">
-                                <label className="form-label">Minimum Experience (years) *</label>
-                                <input
-                                    type="number"
-                                    className="form-input"
-                                    value={formData.min_experience}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, min_experience: parseInt(e.target.value) || 0 })
-                                    }
-                                    required
-                                    min="0"
-                                    max="30"
-                                />
-                            </div>
-
-                            {error && (
-                                <div className="form-error">
-                                    <AlertCircle size={16} />
-                                    {error}
-                                </div>
-                            )}
-
-                            <div className="form-actions">
+                            {/* ── Form Actions ────────────────────────── */}
+                            <div className="flex items-center justify-end gap-4 pt-4 border-t border-slate-800">
                                 <button
                                     type="button"
-                                    className="btn btn-outline"
                                     onClick={() => navigate('/dashboard')}
+                                    className="px-8 py-3.5 rounded-2xl text-sm font-black text-slate-400 border border-slate-800 hover:bg-slate-900 hover:text-white transition-all active:scale-95"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="btn btn-primary"
                                     disabled={loading}
+                                    className="flex items-center gap-2 px-8 py-3.5 rounded-2xl text-sm font-black bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale"
                                 >
                                     {loading ? (
-                                        <div className="spinner" style={{ width: '20px', height: '20px' }} />
+                                        <div className="h-5 w-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                                     ) : (
                                         <>
-                                            <Briefcase size={18} />
+                                            <Briefcase size={16} />
                                             <span>Create Job</span>
                                         </>
                                     )}
                                 </button>
                             </div>
-                        </form>
-                    </div>
+                        </div>
+                    </form>
                 </div>
-            </div>
+            </main>
         </div>
     );
 };
