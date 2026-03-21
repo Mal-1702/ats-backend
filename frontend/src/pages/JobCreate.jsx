@@ -179,9 +179,9 @@ const JobCreate = () => {
 
     // ── Render ───────────────────────────────────────────────────────────────
     return (
-        <div className="dashboard-layout">
+        <div className="flex min-h-screen w-full bg-slate-950 text-slate-50 overflow-hidden font-sans">
             <Sidebar />
-            <div className="dashboard-main">
+            <div className="flex-1 min-w-0 overflow-auto custom-scrollbar relative">
                 <div className="container job-create-container">
                     <div className="job-create-header">
                         <Briefcase size={32} />

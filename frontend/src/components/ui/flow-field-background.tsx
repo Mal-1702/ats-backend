@@ -150,19 +150,25 @@ export default function NeuralBackground({
     animate();
 
     window.addEventListener("resize", handleResize);
-    container.addEventListener("mousemove", handleMouseMove);
-    container.addEventListener("mouseleave", handleMouseLeave);
+    window.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseleave", handleMouseLeave);
 
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener("resize", handleResize);
-      container.removeEventListener("mousemove", handleMouseMove);
-      container.removeEventListener("mouseleave", handleMouseLeave);
+      window.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseleave", handleMouseLeave);
     };
   }, [color, trailOpacity, particleCount, speed]);
 
   return (
-    <div ref={containerRef} className="absolute inset-0 w-full h-full bg-black overflow-hidden">
+    <div
+      ref={containerRef}
+      className={cn(
+        "absolute inset-0 w-full h-full bg-black overflow-hidden",
+        className
+      )}
+    >
       <canvas ref={canvasRef} className="w-full h-full block" />
     </div>
   );

@@ -29,7 +29,7 @@ const Dashboard = () => {
     const { user } = useAuth();
     const [jobs, setJobs] = useState([]);
     const [resumeCount, setResumeCount] = useState(0);
-    const [loadingStage, setLoadingStage] = useState('cube');
+    const [loadingStage, setLoadingStage] = useState(sessionStorage.getItem('dashboard_loaded') ? 'complete' : 'cube');
     const [loading, setLoading] = useState(true);
     const [editingJob, setEditingJob] = useState(null);
     const [editSkills, setEditSkills] = useState([]);
@@ -71,22 +71,27 @@ const Dashboard = () => {
     };
 
     useEffect(() => {
-        let t2, t3;
-        const t1 = setTimeout(() => {
-            setLoadingStage('greeting');
-            t2 = setTimeout(() => {
-                setLoadingStage('fade-out');
-                t3 = setTimeout(() => {
-                    setLoadingStage('complete');
-                }, 800);
-            }, 1600);
-        }, 2200);
+        let t1, t2, t3;
+        if (!sessionStorage.getItem('dashboard_loaded')) {
+            t1 = setTimeout(() => {
+                setLoadingStage('greeting');
+                t2 = setTimeout(() => {
+                    setLoadingStage('fade-out');
+                    t3 = setTimeout(() => {
+                        setLoadingStage('complete');
+                        sessionStorage.setItem('dashboard_loaded', 'true');
+                    }, 800);
+                }, 1600);
+            }, 2200);
+        }
 
         fetchData();
         checkNewResumes();
         pollRef.current = setInterval(checkNewResumes, POLL_INTERVAL_MS);
         return () => {
-            clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+            if (t1) clearTimeout(t1); 
+            if (t2) clearTimeout(t2); 
+            if (t3) clearTimeout(t3);
             clearInterval(pollRef.current);
         };
     }, []);

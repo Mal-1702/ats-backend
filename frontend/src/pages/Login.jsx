@@ -16,7 +16,6 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
-import { Separator } from "../components/ui/separator";
 import {
   Eye,
   EyeOff,
@@ -27,7 +26,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-import { FloatingPaths } from "../components/ui/floating-paths";
+import Galaxy from "../components/Galaxy";
 import "./Login.css";
 
 export default function Login() {
@@ -44,6 +43,7 @@ export default function Login() {
   const [validationErrors, setValidationErrors] = useState({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [showOtpScreen, setShowOtpScreen] = useState(false);
   const [otp, setOtp] = useState('');
   const [username, setUsername] = useState('');
@@ -87,7 +87,10 @@ export default function Login() {
         if (result.success) {
           const name = formData.fullName || formData.email.split('@')[0];
           setUsername(name);
-          navigate('/dashboard');
+          setTimeout(() => {
+            setShowWelcome(true);
+            setTimeout(() => { navigate('/dashboard'); }, 2000);
+          }, 1500);
         } else {
           setError(result.error);
           setLoading(false);
@@ -145,7 +148,10 @@ export default function Login() {
           setUsername(formData.fullName || formData.email.split('@')[0]);
           setLoading(false);
           setShowOtpScreen(false);
-          navigate('/dashboard');
+          setTimeout(() => {
+            setShowWelcome(true);
+            setTimeout(() => { navigate('/dashboard'); }, 2000);
+          }, 1000);
         } else {
           setError('Verification successful, but auto-login failed. Please sign in manually.');
           setLoading(false);
@@ -160,31 +166,34 @@ export default function Login() {
   };
 
   return (
-    <div className="relative min-h-screen w-full bg-zinc-950 text-zinc-50 overflow-hidden">
-
-      {/* Background Layer */}
+    <div className="relative min-h-screen w-full bg-black">
+      
+      {/* Galaxy Background Layer */}
       <div className="absolute inset-0 z-0">
-        <FloatingPaths position={1} />
-        <FloatingPaths position={-1} />
-      </div>
-      {/* Animated accent lines from the new UI */}
-      <div className="accent-lines pointer-events-none absolute inset-0 z-[2] opacity-70">
-        <div className="hline" />
-        <div className="hline" />
-        <div className="hline" />
-        <div className="vline" />
-        <div className="vline" />
-        <div className="vline" />
+        <Galaxy
+          hueShift={240}
+          speed={0.6}
+          starSpeed={0.4}
+          density={1.2}
+          glowIntensity={0.4}
+          saturation={0.3}
+          twinkleIntensity={0.4}
+          rotationSpeed={0.08}
+          mouseRepulsion={true}
+          repulsionStrength={1.5}
+          transparent={false}
+        />
       </div>
 
       {/* Foreground Login UI */}
-      <div className="relative z-10 flex items-center justify-center min-h-screen px-4 w-full">
-        {/* Header from new UI design */}
-        <header className="absolute left-0 right-0 top-0 flex items-center justify-between px-6 py-4 pointer-events-auto">
-          <span className="text-xs tracking-[0.14em] uppercase text-zinc-400">
-            NOVA
-          </span>
-        </header>
+      <div className="relative z-10 flex items-center justify-center min-h-screen px-4 pointer-events-none">
+        {showWelcome && (
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-lg transition-all duration-1000 pointer-events-auto">
+            <span className="text-6xl mb-6">✨</span>
+            <h1 className="text-4xl font-bold tracking-tight text-zinc-50">WELCOME</h1>
+            <h2 className="text-2xl mt-2 text-zinc-400 font-light tracking-wider uppercase">{username}</h2>
+          </div>
+        )}
 
         {showOtpScreen ? (
           <div className="w-full max-w-sm pointer-events-auto">
@@ -228,112 +237,111 @@ export default function Login() {
           </div>
         ) : (
           /* Main Login Card - INTEGRATED WITH USER'S REFINED STYLE */
-          <Card className="card-animate w-[400px] max-w-full border border-zinc-800 bg-[#09090b]/80 backdrop-blur-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] rounded-2xl z-10 pointer-events-auto overflow-hidden">
-            <CardHeader className="space-y-4 !p-12 !pt-16 !pb-10">
-              <CardTitle className="text-[32px] font-bold tracking-tight text-white mb-2">
+          <div className="w-full max-w-md bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-xl p-8 card-animate pointer-events-auto">
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-semibold text-white mb-2">
                 {isLogin ? 'Welcome back' : 'Create an account'}
-              </CardTitle>
-              <CardDescription className="text-[16px] font-medium text-zinc-400">
+              </h1>
+              <p className="text-sm text-zinc-400 mb-6">
                 {isLogin ? 'Sign in to your account' : 'Join us to start recruiting smarter'}
-              </CardDescription>
-            </CardHeader>
+              </p>
+            </div>
 
-            <CardContent className="!p-12 !pt-0 !pb-10">
-              <form onSubmit={handleSubmit} noValidate className="grid gap-[32px]">
+            <form onSubmit={handleSubmit} noValidate>
+              <div className="space-y-4">
 
                 {!isLogin && (
                   <>
-                    <div className="grid gap-[6px]">
-                      <Label htmlFor="fullName" className="text-[13px] font-semibold text-zinc-200">Full Name</Label>
-                      <div className="relative">
-                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-zinc-500" />
-                        <Input
+                    <div className="form-field">
+                      <label htmlFor="fullName" className="text-xs text-zinc-400 mb-1 block tracking-wide">Full Name</label>
+                      <div className="form-input-wrapper relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                        <input
                           id="fullName"
                           name="fullName"
                           type="text"
                           placeholder="John Doe"
                           value={formData.fullName}
                           onChange={handleChange}
-                          className="!pl-[42px] bg-[#09090b] border border-zinc-800 text-sm text-zinc-200 placeholder:text-zinc-600 rounded-[8px] h-10 transition-colors focus-visible:border-zinc-700 focus-visible:ring-1 focus-visible:ring-zinc-700"
+                          className="w-full rounded-lg bg-zinc-800 border border-zinc-700 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
                         />
                       </div>
-                      {validationErrors.fullName && <span className="text-xs text-red-500 ml-1">{validationErrors.fullName}</span>}
+                      {validationErrors.fullName && <span className="text-xs text-red-500 mt-1 ml-1">{validationErrors.fullName}</span>}
                     </div>
 
-                    <div className="grid gap-[6px]">
-                      <Label htmlFor="dob" className="text-[13px] font-semibold text-zinc-200">Date of Birth</Label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-zinc-500" />
-                        <Input
+                    <div className="form-field">
+                      <label htmlFor="dob" className="text-xs text-zinc-400 mb-1 block tracking-wide">Date of Birth</label>
+                      <div className="form-input-wrapper relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                        <input
                           id="dob"
                           name="dob"
                           type="date"
                           value={formData.dob}
                           onChange={handleChange}
                           max={new Date().toISOString().split('T')[0]}
-                          className="!pl-[42px] bg-[#09090b] border border-zinc-800 text-sm text-zinc-200 placeholder:text-zinc-600 rounded-[8px] h-10 transition-colors focus-visible:border-zinc-700 focus-visible:ring-1 focus-visible:ring-zinc-700 [color-scheme:dark]"
+                          className="w-full rounded-lg bg-zinc-800 border border-zinc-700 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition [color-scheme:dark]"
                         />
                       </div>
-                      {validationErrors.dob && <span className="text-xs text-red-500 ml-1">{validationErrors.dob}</span>}
+                      {validationErrors.dob && <span className="text-xs text-red-500 mt-1 ml-1">{validationErrors.dob}</span>}
                     </div>
                   </>
                 )}
 
-                <div className="grid gap-[6px]">
-                  <Label htmlFor="email" className="text-[14px] font-[600] text-zinc-200">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-zinc-500" />
-                    <Input
+                <div className="form-field">
+                  <label htmlFor="email" className="text-xs text-zinc-400 mb-1 block tracking-wide">Email</label>
+                  <div className="form-input-wrapper relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                    <input
                       id="email"
                       name="email"
                       type="email"
                       placeholder="you@example.com"
                       value={formData.email}
                       onChange={handleChange}
-                      className="!pl-[42px] bg-[#09090b] border border-zinc-800/80 text-[14px] text-zinc-200 placeholder:text-zinc-600 rounded-[8px] h-10 transition-colors focus-visible:border-zinc-700 focus-visible:ring-1 focus-visible:ring-zinc-700"
+                      className="w-full rounded-lg bg-zinc-800 border border-zinc-700 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
                     />
                   </div>
-                  {validationErrors.email && <span className="text-xs text-red-500 ml-1">{validationErrors.email}</span>}
+                  {validationErrors.email && <span className="text-xs text-red-500 mt-1 ml-1">{validationErrors.email}</span>}
                 </div>
 
-                <div className="grid gap-[6px]">
-                  <Label htmlFor="password" className="text-[14px] font-[600] text-zinc-200">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-zinc-500" />
-                    <Input
+                <div className="form-field">
+                  <label htmlFor="password" className="text-xs text-zinc-400 mb-1 block tracking-wide">Password</label>
+                  <div className="form-input-wrapper relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                    <input
                       id="password"
                       name="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
                       value={formData.password}
                       onChange={handleChange}
-                      className="!pl-[42px] pr-10 bg-[#09090b] border border-zinc-800/80 text-[14px] text-zinc-200 placeholder:text-zinc-600 rounded-[8px] h-10 transition-colors focus-visible:border-zinc-700 focus-visible:ring-1 focus-visible:ring-zinc-700"
+                      className="w-full rounded-lg bg-zinc-800 border border-zinc-700 py-2.5 pl-10 pr-10 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
                     />
                     <button
                       type="button"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
                       tabIndex="-1"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md text-zinc-500 hover:text-zinc-300 transition-colors border-none bg-transparent cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors border-none bg-transparent cursor-pointer"
                       onClick={() => setShowPassword((v) => !v)}
                     >
-                      {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
-                  {validationErrors.password && <span className="text-xs text-red-500 ml-1">{validationErrors.password}</span>}
+                  {validationErrors.password && <span className="text-xs text-red-500 mt-1 ml-1">{validationErrors.password}</span>}
                 </div>
 
                 {isLogin && (
-                  <div className="flex items-center justify-between mt-0.5 mb-1.5">
+                  <div className="flex items-center justify-between text-sm text-zinc-400 mt-3 px-1">
                     <div className="flex items-center gap-2">
                       <Checkbox
                         id="remember"
-                        className="border-zinc-700 bg-transparent rounded-[4px] w-4 h-4 data-[state=checked]:bg-zinc-200 data-[state=checked]:text-black"
+                        className="h-4 w-4 border-zinc-700 data-[state=checked]:bg-indigo-500 data-[state=checked]:text-white"
                       />
-                      <Label htmlFor="remember" className="text-[14px] font-[600] text-zinc-400 cursor-pointer">
+                      <label htmlFor="remember" className="cursor-pointer select-none">
                         Remember me
-                      </Label>
+                      </label>
                     </div>
-                    <Link to="/forgot-password" title="Forgot password link" className="text-[14px] font-[600] text-zinc-400 hover:text-zinc-200 transition-colors no-underline">
+                    <Link to="/forgot-password" title="Forgot password link" className="hover:text-indigo-400 transition-colors no-underline">
                       Forgot password?
                     </Link>
                   </div>
@@ -345,23 +353,25 @@ export default function Login() {
                   </div>
                 )}
 
-                <Button type="submit" disabled={loading} className="w-full h-12 mt-6 rounded-[10px] bg-white text-black hover:bg-zinc-200 font-bold transition-colors shadow-none text-base">
+                <button type="submit" disabled={loading} className="w-full mt-6 bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 rounded-lg transition-all duration-200 shadow-lg shadow-indigo-600/20 active:scale-[0.98]">
                   {loading ? "Processing..." : "Continue"}
-                </Button>
-              </form>
-            </CardContent>
+                </button>
+              </div>
 
-            <CardFooter className="flex items-center justify-center text-sm font-medium text-zinc-400 !pb-16 !px-12 border-none bg-transparent">
-              <span className="opacity-80">{isLogin ? "Don't have an account?" : "Already have an account?"}</span>
-              <button
-                type="button"
-                onClick={switchMode}
-                className="ml-1 text-white hover:text-zinc-200 font-bold border-none bg-transparent cursor-pointer"
-              >
-                {isLogin ? "Create one" : "Sign in here"}
-              </button>
-            </CardFooter>
-          </Card>
+              <div className="mt-8 text-center pt-6 border-t border-zinc-800/50">
+                <p className="text-sm text-zinc-500">
+                  {isLogin ? "Don't have an account?" : "Already have an account?"}
+                  <button
+                    type="button"
+                    onClick={switchMode}
+                    className="ml-1 text-indigo-400 hover:text-indigo-300 font-semibold border-none bg-transparent cursor-pointer transition-colors"
+                  >
+                    {isLogin ? "Create one" : "Sign in here"}
+                  </button>
+                </p>
+              </div>
+            </form>
+          </div>
         )}
       </div>
     </div>

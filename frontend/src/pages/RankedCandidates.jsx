@@ -69,9 +69,9 @@ const RankedCandidates = () => {
 
     if (loading) {
         return (
-            <div className="dashboard-layout">
+            <div className="flex min-h-screen w-full bg-slate-950 text-slate-50 overflow-hidden font-sans">
                 <Sidebar />
-                <div className="dashboard-main">
+                <div className="flex-1 min-w-0 overflow-auto custom-scrollbar relative">
                     <div className="container">
                         <div className="spinner-large"></div>
                     </div>
@@ -83,9 +83,9 @@ const RankedCandidates = () => {
     const hasResults = rankings?.shortlist && rankings.shortlist.length > 0;
 
     return (
-        <div className="dashboard-layout">
+        <div className="flex min-h-screen w-full bg-slate-950 text-slate-50 overflow-hidden font-sans">
             <Sidebar />
-            <div className="dashboard-main">
+            <div className="flex-1 min-w-0 overflow-auto custom-scrollbar relative">
                 <div className="ranked-candidates-page">
                     <div className="container">
                         <div className="candidates-header">
