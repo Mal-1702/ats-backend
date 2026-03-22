@@ -96,3 +96,47 @@ def get_new_resumes_count(
         response["job_id"] = job_id
 
     return response
+
+
+@router.get("/dashboard/weekly-stats", tags=["Dashboard"])
+def get_weekly_stats(
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Return resume upload counts per day for the past 7 days.
+    Used by the analytics bar chart on the dashboard.
+    """
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            TO_CHAR(uploaded_at, 'Dy')  AS day_label,
+            DATE(uploaded_at)           AS upload_date,
+            COUNT(*)                    AS resume_count
+        FROM resumes
+        WHERE uploaded_at >= NOW() - INTERVAL '7 days'
+        GROUP BY day_label, upload_date
+        ORDER BY upload_date;
+    """)
+
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    # Build response sorted by date
+    day_colors = {
+        "Mon": "#3b82f6", "Tue": "#8b5cf6", "Wed": "#ec4899",
+        "Thu": "#f97316", "Fri": "#06b6d4", "Sat": "#10b981", "Sun": "#eab308",
+    }
+
+    data = []
+    for row in rows:
+        label = row[0].strip()
+        data.append({
+            "day": label,
+            "count": row[2],
+            "fill": day_colors.get(label, "#3b82f6"),
+        })
+
+    return {"weekly_stats": data}

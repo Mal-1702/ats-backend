@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jobsAPI, resumesAPI, dashboardAPI } from '../services/api';
 import Sidebar from '../components/Sidebar';
+import BorderGlow from '../components/ui/BorderGlow';
 import { 
   Briefcase, 
   Users, 
@@ -16,19 +17,34 @@ import {
   AlertCircle,
   Calendar,
   Layers,
-  Search,
-  ChevronRight
+  ChevronRight,
+  BarChart3
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import CubeLoader from '../components/ui/cube-loader';
+import { BarChart, Bar, XAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const LAST_CHECK_KEY = 'ats_last_dashboard_check';
 const POLL_INTERVAL_MS = 60_000;
+
+// ── Custom tooltip for the chart ──
+const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 shadow-2xl">
+                <p className="text-xs font-black text-white">{payload[0].payload.day}</p>
+                <p className="text-xs font-bold text-blue-400">{payload[0].value} resumes</p>
+            </div>
+        );
+    }
+    return null;
+};
 
 const Dashboard = () => {
     const { user } = useAuth();
     const [jobs, setJobs] = useState([]);
     const [resumeCount, setResumeCount] = useState(0);
+    const [weeklyStats, setWeeklyStats] = useState([]);
     const [loadingStage, setLoadingStage] = useState(sessionStorage.getItem('dashboard_loaded') ? 'complete' : 'cube');
     const [loading, setLoading] = useState(true);
     const [editingJob, setEditingJob] = useState(null);
@@ -59,6 +75,13 @@ const Dashboard = () => {
         }
     };
 
+    const fetchWeeklyStats = async () => {
+        try {
+            const res = await dashboardAPI.getWeeklyStats();
+            setWeeklyStats(res.data.weekly_stats || []);
+        } catch { /* silent */ }
+    };
+
     const checkNewResumes = async () => {
         try {
             const since = localStorage.getItem(LAST_CHECK_KEY);
@@ -86,6 +109,7 @@ const Dashboard = () => {
         }
 
         fetchData();
+        fetchWeeklyStats();
         checkNewResumes();
         pollRef.current = setInterval(checkNewResumes, POLL_INTERVAL_MS);
         return () => {
@@ -187,10 +211,13 @@ const Dashboard = () => {
     const activeJobsCount = jobs.filter(job => job.is_active).length;
 
     const statsCards = [
-        { label: 'Total Listings', value: jobs.length, icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-        { label: 'Active Roles', value: activeJobsCount, icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-        { label: 'Candidates', value: resumeCount, icon: Users, color: 'text-violet-400', bg: 'bg-violet-500/10' },
+        { label: 'Total Listings', value: jobs.length, icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-500/10', glowColor: '220 80 60', colors: ['#3b82f6', '#60a5fa', '#2563eb'] },
+        { label: 'Active Roles', value: activeJobsCount, icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10', glowColor: '150 80 60', colors: ['#10b981', '#34d399', '#059669'] },
+        { label: 'Candidates', value: resumeCount, icon: Users, color: 'text-violet-400', bg: 'bg-violet-500/10', glowColor: '270 80 70', colors: ['#8b5cf6', '#a78bfa', '#7c3aed'] },
     ];
+
+    // Weekly chart total
+    const weeklyTotal = weeklyStats.reduce((sum, d) => sum + d.count, 0);
 
     return (
         <div className="flex min-h-screen w-full bg-slate-950 text-slate-50 overflow-hidden font-sans">
@@ -265,23 +292,90 @@ const Dashboard = () => {
                         </div>
                     )}
 
-                    {/* Stats Section: High Proportions */}
+                    {/* ── Stats Cards with BorderGlow ────────────────── */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {statsCards.map((stat, i) => (
-                            <div key={i} className="p-10 rounded-[2.5rem] border border-slate-800 bg-slate-900/40 shadow-sm hover:border-slate-700/50 hover:bg-slate-900 transition-all duration-500 group relative overflow-hidden active:scale-[0.98]">
-                                <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                                    <stat.icon size={80} />
+                            <BorderGlow
+                                key={i}
+                                backgroundColor="#0a0f1e"
+                                borderRadius={40}
+                                glowColor={stat.glowColor}
+                                colors={stat.colors}
+                                glowIntensity={0.8}
+                                glowRadius={35}
+                                fillOpacity={0.3}
+                            >
+                                <div className="p-10 group relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                                        <stat.icon size={80} />
+                                    </div>
+                                    <div className={`size-14 ${stat.bg} rounded-2xl flex items-center justify-center mb-8 border border-white/5`}>
+                                        <stat.icon className={`h-7 w-7 ${stat.color}`} />
+                                    </div>
+                                    <p className="text-xs font-black tracking-[0.2em] text-slate-500 uppercase mb-2">{stat.label}</p>
+                                    <p className="text-5xl font-black text-white tracking-tighter">{stat.value}</p>
                                 </div>
-                                <div className={`size-14 ${stat.bg} rounded-2xl flex items-center justify-center mb-8 border border-white/5`}>
-                                    <stat.icon className={`h-7 w-7 ${stat.color}`} />
-                                </div>
-                                <p className="text-xs font-black tracking-[0.2em] text-slate-500 uppercase mb-2">{stat.label}</p>
-                                <p className="text-5xl font-black text-white tracking-tighter">{stat.value}</p>
-                            </div>
+                            </BorderGlow>
                         ))}
                     </div>
 
-                    {/* Jobs Section */}
+                    {/* ── Weekly Analytics Chart ─────────────────────── */}
+                    <BorderGlow
+                        backgroundColor="#0a0f1e"
+                        borderRadius={40}
+                        glowColor="220 70 60"
+                        colors={['#3b82f6', '#8b5cf6', '#06b6d4']}
+                        glowIntensity={0.6}
+                        glowRadius={30}
+                        fillOpacity={0.2}
+                    >
+                        <div className="p-10">
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="flex items-center gap-3">
+                                    <div className="size-10 bg-blue-500/10 rounded-xl flex items-center justify-center border border-blue-500/20">
+                                        <BarChart3 size={20} className="text-blue-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-black text-white tracking-tight">Weekly Intake</h3>
+                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Resume uploads — Last 7 days</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-3xl font-black text-white tracking-tighter">{weeklyTotal}</span>
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">total</span>
+                                </div>
+                            </div>
+
+                            {weeklyStats.length > 0 ? (
+                                <div className="h-[220px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={weeklyStats} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                                            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                                            <XAxis
+                                                dataKey="day"
+                                                tickLine={false}
+                                                tickMargin={10}
+                                                axisLine={false}
+                                                tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }}
+                                            />
+                                            <Tooltip content={<CustomTooltip />} cursor={false} />
+                                            <Bar dataKey="count" radius={[8, 8, 0, 0]} maxBarSize={48}>
+                                                {weeklyStats.map((entry, index) => (
+                                                    <Cell key={index} fill={entry.fill} fillOpacity={0.85} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            ) : (
+                                <div className="h-[220px] flex items-center justify-center">
+                                    <p className="text-sm text-slate-600 font-medium">No resume uploads in the last 7 days</p>
+                                </div>
+                            )}
+                        </div>
+                    </BorderGlow>
+
+                    {/* ── Jobs Section ───────────────────────────────── */}
                     <div>
                         <div className="flex items-center justify-between mb-8 px-2">
                             <div className="flex items-center gap-3">
@@ -307,54 +401,65 @@ const Dashboard = () => {
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                 {jobs.map((job) => (
-                                    <div key={job.id} className="min-h-[340px] rounded-[2.5rem] border border-slate-800 bg-slate-900/40 p-10 flex flex-col justify-between shadow-sm hover:border-slate-600 hover:bg-slate-900 transition-all duration-500 group relative">
-                                        <div className="space-y-6">
-                                            <div className="flex justify-between items-start">
-                                                <div className="space-y-1">
-                                                    <h3 className="text-2xl font-black text-white group-hover:text-blue-400 transition-colors uppercase leading-tight pr-8">{job.title}</h3>
-                                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">Job ID: #{String(job.id).slice(0, 8)}</p>
+                                    <BorderGlow
+                                        key={job.id}
+                                        backgroundColor="#0a0f1e"
+                                        borderRadius={40}
+                                        glowColor={job.is_active ? '220 70 60' : '0 60 50'}
+                                        colors={job.is_active ? ['#3b82f6', '#60a5fa', '#8b5cf6'] : ['#ef4444', '#f87171', '#dc2626']}
+                                        glowIntensity={0.7}
+                                        glowRadius={30}
+                                        fillOpacity={0.25}
+                                    >
+                                        <div className="min-h-[340px] p-10 flex flex-col justify-between group relative">
+                                            <div className="space-y-6">
+                                                <div className="flex justify-between items-start">
+                                                    <div className="space-y-1">
+                                                        <h3 className="text-2xl font-black text-white group-hover:text-blue-400 transition-colors uppercase leading-tight pr-8">{job.title}</h3>
+                                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">Job ID: #{String(job.id).slice(0, 8)}</p>
+                                                    </div>
+                                                    <span className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] rounded-full border ${job.is_active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                                        {job.is_active ? 'Active' : 'Closed'}
+                                                    </span>
                                                 </div>
-                                                <span className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] rounded-full border ${job.is_active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                                                    {job.is_active ? 'Active' : 'Closed'}
-                                                </span>
-                                            </div>
 
-                                            <div className="flex flex-wrap gap-4 text-xs font-bold text-slate-400">
-                                                <div className="flex items-center gap-2 bg-slate-950/50 px-3 py-1.5 rounded-lg border border-white/5"><Calendar size={14} className="text-blue-400" />{job.min_experience}+ Years</div>
-                                                <div className="flex items-center gap-2 bg-slate-950/50 px-3 py-1.5 rounded-lg border border-white/5"><Layers size={14} className="text-emerald-400" />{new Date(job.created_at).toLocaleDateString()}</div>
-                                            </div>
+                                                <div className="flex flex-wrap gap-4 text-xs font-bold text-slate-400">
+                                                    <div className="flex items-center gap-2 bg-slate-950/50 px-3 py-1.5 rounded-lg border border-white/5"><Calendar size={14} className="text-blue-400" />{job.min_experience}+ Years</div>
+                                                    <div className="flex items-center gap-2 bg-slate-950/50 px-3 py-1.5 rounded-lg border border-white/5"><Layers size={14} className="text-emerald-400" />{new Date(job.created_at).toLocaleDateString()}</div>
+                                                </div>
 
-                                            <div className="flex flex-wrap gap-2 pt-2">
-                                                {job.skills?.slice(0, 4).map((skill, idx) => (
-                                                    <span key={idx} className="px-3.5 py-1.5 text-[11px] font-black bg-slate-950 text-slate-300 rounded-xl border border-slate-800 group-hover:border-blue-500/30 transition-colors capitalize">{skill}</span>
-                                                ))}
-                                                {job.skills?.length > 4 && <span className="px-3.5 py-1.5 text-[11px] font-black bg-white text-slate-950 rounded-xl">+{job.skills.length - 4}</span>}
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-10 flex items-center gap-2 pt-8 border-t border-slate-800/50">
-                                            <button 
-                                                onClick={() => navigate(`/jobs/${job.id}/candidates`)}
-                                                className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs py-3.5 rounded-2xl shadow-xl shadow-blue-500/10 transition-all active:scale-95"
-                                            >
-                                                View Candidates
-                                            </button>
-                                            <button 
-                                                onClick={() => openUploadModal(job)}
-                                                className="p-3.5 text-slate-400 bg-slate-950 border border-slate-800 rounded-2xl hover:text-white hover:bg-slate-800 transition-all active:scale-95"
-                                                title="Upload Resume"
-                                            >
-                                                <Upload size={18} />
-                                            </button>
-                                            
-                                            <div className="relative group/menu flex items-center">
-                                                <div className="flex gap-2">
-                                                    <button onClick={() => openEditModal(job)} className="p-2.5 text-slate-600 hover:text-blue-400 hover:bg-blue-400/10 rounded-xl transition-all"><Pencil size={18} /></button>
-                                                    <button onClick={() => setDeleteConfirm(job.id)} className="p-2.5 text-slate-600 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all"><Trash2 size={18} /></button>
+                                                <div className="flex flex-wrap gap-2 pt-2">
+                                                    {job.skills?.slice(0, 4).map((skill, idx) => (
+                                                        <span key={idx} className="px-3.5 py-1.5 text-[11px] font-black bg-slate-950 text-slate-300 rounded-xl border border-slate-800 group-hover:border-blue-500/30 transition-colors capitalize">{skill}</span>
+                                                    ))}
+                                                    {job.skills?.length > 4 && <span className="px-3.5 py-1.5 text-[11px] font-black bg-white text-slate-950 rounded-xl">+{job.skills.length - 4}</span>}
                                                 </div>
                                             </div>
+
+                                            <div className="mt-10 flex items-center gap-2 pt-8 border-t border-slate-800/50">
+                                                <button 
+                                                    onClick={() => navigate(`/jobs/${job.id}/candidates`)}
+                                                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs py-3.5 rounded-2xl shadow-xl shadow-blue-500/10 transition-all active:scale-95"
+                                                >
+                                                    View Candidates
+                                                </button>
+                                                <button 
+                                                    onClick={() => openUploadModal(job)}
+                                                    className="p-3.5 text-slate-400 bg-slate-950 border border-slate-800 rounded-2xl hover:text-white hover:bg-slate-800 transition-all active:scale-95"
+                                                    title="Upload Resume"
+                                                >
+                                                    <Upload size={18} />
+                                                </button>
+                                                
+                                                <div className="relative group/menu flex items-center">
+                                                    <div className="flex gap-2">
+                                                        <button onClick={() => openEditModal(job)} className="p-2.5 text-slate-600 hover:text-blue-400 hover:bg-blue-400/10 rounded-xl transition-all"><Pencil size={18} /></button>
+                                                        <button onClick={() => setDeleteConfirm(job.id)} className="p-2.5 text-slate-600 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all"><Trash2 size={18} /></button>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
+                                    </BorderGlow>
                                 ))}
                             </div>
                         )}
