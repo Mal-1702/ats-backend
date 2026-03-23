@@ -83,6 +83,7 @@ export const adminAPI = {
 export const dashboardAPI = {
     getNewResumesCount: (params = {}) => api.get('/dashboard/new-resumes-count', { params }),
     getWeeklyStats: () => api.get('/dashboard/weekly-stats'),
+    getRawResumes: () => api.get('/dashboard/raw-resumes'),
 };
 
 
