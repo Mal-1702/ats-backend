@@ -140,7 +140,7 @@ const Dashboard = () => {
     };
 
     const chartData = useMemo(() => transformData(rawResumes, range), [rawResumes, range, jobRoles]);
-    const [loadingStage, setLoadingStage] = useState(sessionStorage.getItem('dashboard_loaded') ? 'complete' : 'cube');
+    const [loadingStage, setLoadingStage] = useState('complete');
     const [loading, setLoading] = useState(true);
     const [editingJob, setEditingJob] = useState(null);
     const [editSkills, setEditSkills] = useState([]);
@@ -190,28 +190,13 @@ const Dashboard = () => {
     };
 
     useEffect(() => {
-        let t1, t2, t3;
-        if (!sessionStorage.getItem('dashboard_loaded')) {
-            t1 = setTimeout(() => {
-                setLoadingStage('greeting');
-                t2 = setTimeout(() => {
-                    setLoadingStage('fade-out');
-                    t3 = setTimeout(() => {
-                        setLoadingStage('complete');
-                        sessionStorage.setItem('dashboard_loaded', 'true');
-                    }, 800);
-                }, 1600);
-            }, 2200);
-        }
+        sessionStorage.setItem('dashboard_loaded', 'true');
 
         fetchData();
         fetchWeeklyStats();
         checkNewResumes();
         pollRef.current = setInterval(checkNewResumes, POLL_INTERVAL_MS);
         return () => {
-            if (t1) clearTimeout(t1); 
-            if (t2) clearTimeout(t2); 
-            if (t3) clearTimeout(t3);
             clearInterval(pollRef.current);
         };
     }, []);
@@ -352,7 +337,7 @@ const Dashboard = () => {
             <Sidebar />
 
             <main className="flex-1 min-w-0 overflow-auto custom-scrollbar relative bg-[radial-gradient(circle_at_top_right,rgba(30,41,59,0.3),transparent_50%)]">
-                <div className="max-w-7xl mx-auto px-6 py-10">
+                <div className="max-w-7xl mx-auto px-6 py-10 animate-in fade-in zoom-in duration-1000 ease-out fill-mode-forwards">
 
                     {/* ── HEADER ──────────────────────────────────── */}
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-10">

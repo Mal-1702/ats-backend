@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 
 import Galaxy from "../components/Galaxy";
+import { ATSLoader } from "../components/ui/ats-loader";
 import "./Login.css";
 
 export default function Login() {
@@ -87,10 +88,7 @@ export default function Login() {
         if (result.success) {
           const name = formData.fullName || formData.email.split('@')[0];
           setUsername(name);
-          setTimeout(() => {
-            setShowWelcome(true);
-            setTimeout(() => { navigate('/dashboard'); }, 2000);
-          }, 1500);
+          setShowWelcome(true);
         } else {
           setError(result.error);
           setLoading(false);
@@ -148,10 +146,7 @@ export default function Login() {
           setUsername(formData.fullName || formData.email.split('@')[0]);
           setLoading(false);
           setShowOtpScreen(false);
-          setTimeout(() => {
-            setShowWelcome(true);
-            setTimeout(() => { navigate('/dashboard'); }, 2000);
-          }, 1000);
+          setShowWelcome(true);
         } else {
           setError('Verification successful, but auto-login failed. Please sign in manually.');
           setLoading(false);
@@ -169,33 +164,31 @@ export default function Login() {
     <div className="relative min-h-screen w-full bg-black">
       
       {/* Galaxy Background Layer */}
-      <div className="absolute inset-0 z-0">
-        <Galaxy
-          hueShift={240}
-          speed={0.6}
-          starSpeed={0.4}
-          density={1.2}
-          glowIntensity={0.4}
-          saturation={0.3}
-          twinkleIntensity={0.4}
-          rotationSpeed={0.08}
-          mouseRepulsion={true}
-          repulsionStrength={1.5}
-          transparent={false}
-        />
-      </div>
+      {!showWelcome && (
+        <div className="absolute inset-0 z-0">
+          <Galaxy
+            hueShift={240}
+            speed={0.6}
+            starSpeed={0.4}
+            density={1.2}
+            glowIntensity={0.4}
+            saturation={0.3}
+            twinkleIntensity={0.4}
+            rotationSpeed={0.08}
+            mouseRepulsion={true}
+            repulsionStrength={1.5}
+            transparent={false}
+          />
+        </div>
+      )}
 
       {/* Foreground Login UI */}
       <div className="relative z-10 flex items-center justify-center min-h-screen px-4 pointer-events-none">
         {showWelcome && (
-          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-lg transition-all duration-1000 pointer-events-auto">
-            <span className="text-6xl mb-6">✨</span>
-            <h1 className="text-4xl font-bold tracking-tight text-zinc-50">WELCOME</h1>
-            <h2 className="text-2xl mt-2 text-zinc-400 font-light tracking-wider uppercase">{username}</h2>
-          </div>
+          <ATSLoader onComplete={() => navigate('/dashboard')} />
         )}
 
-        {showOtpScreen ? (
+        {!showWelcome && (showOtpScreen ? (
           <div className="w-full max-w-sm pointer-events-auto">
             <button
               onClick={() => setShowOtpScreen(false)}
@@ -372,7 +365,7 @@ export default function Login() {
               </div>
             </form>
           </div>
-        )}
+        ))}
       </div>
     </div>
   );
