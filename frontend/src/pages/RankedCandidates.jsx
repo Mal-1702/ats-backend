@@ -77,7 +77,7 @@ const RankedCandidates = () => {
     // ── Loading state ──
     if (loading) {
         return (
-            <div className="flex min-h-screen w-full bg-slate-950 text-slate-50 overflow-hidden font-sans">
+            <div className="flex h-screen w-full bg-slate-950 text-slate-50 overflow-hidden font-sans">
                 <Sidebar />
                 <main className="flex-1 min-w-0 overflow-auto custom-scrollbar relative">
                     <div className="max-w-7xl mx-auto px-6 py-10 flex items-center justify-center min-h-[80vh]">
@@ -89,7 +89,7 @@ const RankedCandidates = () => {
     }
 
     return (
-        <div className="flex min-h-screen w-full bg-slate-950 text-slate-50 overflow-hidden font-sans">
+        <div className="flex h-screen w-full bg-slate-950 text-slate-50 overflow-hidden font-sans">
             <Sidebar />
 
             <main className="flex-1 min-w-0 overflow-auto custom-scrollbar relative bg-[radial-gradient(circle_at_top_right,rgba(30,41,59,0.3),transparent_50%)]">

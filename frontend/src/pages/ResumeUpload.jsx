@@ -255,7 +255,7 @@ const ResumeUpload = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-slate-950 text-slate-50 overflow-hidden font-sans">
+    <div className="flex h-screen w-full bg-slate-950 text-slate-50 overflow-hidden font-sans">
       <Sidebar />
 
       <main className="flex-1 min-w-0 overflow-auto custom-scrollbar relative">

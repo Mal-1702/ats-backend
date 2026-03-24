@@ -305,7 +305,7 @@ const Dashboard = () => {
     }, 0);
 
     return (
-        <div className="flex min-h-screen w-full bg-slate-950 text-slate-50 overflow-hidden font-sans">
+        <div className="flex h-screen w-full bg-slate-950 text-slate-50 overflow-hidden font-sans">
             {/* Cinematic Loading Overlay */}
             {loadingStage !== 'complete' && (
                 <div 
