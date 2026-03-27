@@ -18,7 +18,11 @@ import {
   Calendar,
   Layers,
   ChevronRight,
-  BarChart3
+  BarChart3,
+  XCircle, Clock, Search, Filter, 
+  ChevronDown, MapPin, Building, Globe,
+  LayoutDashboard, UserPlus, FileText, Settings, LogOut,
+  Eye, Loader, Shield, Star
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import CubeLoader from '../components/ui/cube-loader';
@@ -67,6 +71,92 @@ const ChartLegend = ({ payload }) => (
         ))}
     </div>
 );
+
+// ── Priority configuration (Matches JobCreate.jsx) ─────────────────────────
+const PRIORITY_LEVELS = [
+    { label: 'Critical', value: 1.00, tw: 'text-red-400 bg-red-500/10 border-red-500/30', bar: 'bg-red-500', dot: 'bg-red-400' },
+    { label: 'High',     value: 0.75, tw: 'text-orange-400 bg-orange-500/10 border-orange-500/30', bar: 'bg-orange-500', dot: 'bg-orange-400' },
+    { label: 'Medium',   value: 0.50, tw: 'text-amber-400 bg-amber-500/10 border-amber-500/30', bar: 'bg-amber-500', dot: 'bg-amber-400' },
+    { label: 'Low',      value: 0.25, tw: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30', bar: 'bg-cyan-500', dot: 'bg-cyan-400' },
+    { label: 'Optional', value: 0.10, tw: 'text-slate-400 bg-slate-500/10 border-slate-500/30', bar: 'bg-slate-500', dot: 'bg-slate-400' },
+];
+
+function getPriorityConfig(priority) {
+    if (priority >= 0.90) return PRIORITY_LEVELS[0];
+    if (priority >= 0.65) return PRIORITY_LEVELS[1];
+    if (priority >= 0.40) return PRIORITY_LEVELS[2];
+    if (priority >= 0.20) return PRIORITY_LEVELS[3];
+    return PRIORITY_LEVELS[4];
+}
+
+// ── SkillCard: a single skill with priority slider ────────────────────────
+function SkillCard({ skillObj, onRemove, onPriorityChange }) {
+    const { skill, priority } = skillObj;
+    const cfg = getPriorityConfig(priority);
+    const barW = Math.round(priority * 100);
+
+    return (
+        <div className={`rounded-2xl border p-4 transition-all duration-300 ${cfg.tw}`}>
+            {/* Top row: name + remove */}
+            <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-black text-white truncate mr-2">{skill}</span>
+                <button
+                    type="button"
+                    onClick={() => onRemove(skill)}
+                    className="p-1 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                    aria-label={`Remove ${skill}`}
+                >
+                    <X size={14} />
+                </button>
+            </div>
+
+            {/* Priority bar */}
+            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-3">
+                <div
+                    className={`h-full rounded-full transition-all duration-300 ${cfg.bar}`}
+                    style={{ width: `${barW}%` }}
+                />
+            </div>
+
+            {/* Slider */}
+            <input
+                type="range"
+                min="0.10"
+                max="1.00"
+                step="0.01"
+                value={priority}
+                onChange={(e) => onPriorityChange(skill, parseFloat(e.target.value))}
+                className="w-full h-1 accent-blue-500 appearance-none bg-slate-800 rounded-full cursor-pointer mb-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer"
+                aria-label={`Priority for ${skill}`}
+            />
+
+            {/* Level chips */}
+            <div className="flex flex-wrap gap-1.5 mb-2">
+                {PRIORITY_LEVELS.map((lvl) => {
+                    const isActive = Math.abs(priority - lvl.value) < 0.13;
+                    return (
+                        <button
+                            key={lvl.label}
+                            type="button"
+                            className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border transition-all ${
+                                isActive
+                                    ? lvl.tw
+                                    : 'text-slate-600 border-slate-800 bg-slate-950/60 hover:text-slate-400 hover:border-slate-700'
+                            }`}
+                            onClick={() => onPriorityChange(skill, lvl.value)}
+                        >
+                            {lvl.label}
+                        </button>
+                    );
+                })}
+            </div>
+
+            <div className={`text-[11px] font-black ${cfg.tw.split(' ')[0]}`}>
+                {barW}% — {cfg.label}
+            </div>
+        </div>
+    );
+}
 
 const Dashboard = () => {
     const { user } = useAuth();
@@ -143,7 +233,7 @@ const Dashboard = () => {
     const [loadingStage, setLoadingStage] = useState('complete');
     const [loading, setLoading] = useState(true);
     const [editingJob, setEditingJob] = useState(null);
-    const [editSkills, setEditSkills] = useState([]);
+    const [editSkillObjs, setEditSkillObjs] = useState([]); // [{skill, priority, importance_level}]
     const [newSkill, setNewSkill] = useState('');
     const [editLoading, setEditLoading] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -214,31 +304,63 @@ const Dashboard = () => {
 
     const openEditModal = (job) => {
         setEditingJob(job);
-        setEditSkills([...job.skills]);
+        // Map existing skills to the slider format if they are missing priorities
+        if (job.skill_priorities && job.skill_priorities.length > 0) {
+            setEditSkillObjs([...job.skill_priorities]);
+        } else {
+            setEditSkillObjs((job.skills || []).map(s => ({
+                skill: s,
+                priority: 0.75, // Default High
+                importance_level: 'high'
+            })));
+        }
         setNewSkill('');
     };
 
     const closeEditModal = () => {
         setEditingJob(null);
-        setEditSkills([]);
+        setEditSkillObjs([]);
         setNewSkill('');
     };
 
     const addEditSkill = () => {
         const trimmed = newSkill.trim();
-        if (trimmed && !editSkills.includes(trimmed)) {
-            setEditSkills([...editSkills, trimmed]);
+        if (trimmed && !editSkillObjs.find(s => s.skill.toLowerCase() === trimmed.toLowerCase())) {
+            setEditSkillObjs([
+                ...editSkillObjs,
+                { skill: trimmed, priority: 0.75, importance_level: 'high' }
+            ]);
             setNewSkill('');
         }
     };
 
-    const removeEditSkill = (skill) => setEditSkills(editSkills.filter(s => s !== skill));
+    const removeEditSkill = (skillName) => {
+        setEditSkillObjs(editSkillObjs.filter(s => s.skill !== skillName));
+    };
+
+    const handlePriorityChange = (skillName, newPriority) => {
+        const cfg = getPriorityConfig(newPriority);
+        setEditSkillObjs(prev =>
+            prev.map(s =>
+                s.skill === skillName
+                    ? { ...s, priority: newPriority, importance_level: cfg.label.toLowerCase() }
+                    : s
+            )
+        );
+    };
 
     const handleSaveSkills = async () => {
         if (!editingJob) return;
         setEditLoading(true);
         try {
-            await jobsAPI.updateSkills(editingJob.id, editSkills);
+            const rawSkills = editSkillObjs.map(s => s.skill);
+            console.log("Saving job skills:", { skills: rawSkills, skill_priorities: editSkillObjs });
+            
+            await jobsAPI.updateSkills(editingJob.id, { 
+                skills: rawSkills, 
+                skill_priorities: editSkillObjs 
+            });
+            
             closeEditModal();
             fetchData();
         } catch (error) {
@@ -616,14 +738,20 @@ const Dashboard = () => {
                         <div className="space-y-6">
                             <div>
                                 <label className="block text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] mb-3">Core Competencies</label>
-                                <div className="flex flex-wrap gap-2 p-2 min-h-[100px] bg-slate-950 rounded-xl border border-slate-800 overflow-y-auto custom-scrollbar">
-                                    {editSkills.map((skill, idx) => (
-                                        <span key={idx} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-black flex items-center gap-3">
-                                            {skill}
-                                            <button onClick={() => removeEditSkill(skill)} className="hover:scale-125 transition-transform"><X size={12} /></button>
-                                        </span>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[40vh] overflow-y-auto custom-scrollbar p-1">
+                                    {editSkillObjs.map((obj) => (
+                                        <SkillCard 
+                                            key={obj.skill}
+                                            skillObj={obj}
+                                            onRemove={removeEditSkill}
+                                            onPriorityChange={handlePriorityChange}
+                                        />
                                     ))}
-                                    {editSkills.length === 0 && <span className="p-4 text-slate-600 italic font-medium">No skills defined...</span>}
+                                    {editSkillObjs.length === 0 && (
+                                        <div className="col-span-full p-4 text-center rounded-2xl bg-slate-950/50 border border-dashed border-slate-800 text-slate-500 italic font-medium">
+                                            No skills defined in this role. Type a skill below to add priorities.
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             

@@ -156,13 +156,14 @@ def update_skills_endpoint(
     Payload: { "skills": [...], "skill_priorities": [...] }
     """
     skills = payload.get("skills")
+    skill_priorities = payload.get("skill_priorities")
     if skills is None or not isinstance(skills, list):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Payload must contain a 'skills' list",
         )
 
-    success = update_job_skills(job_id, skills)
+    success = update_job_skills(job_id, skills, skill_priorities)
     if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
 

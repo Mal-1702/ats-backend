@@ -537,11 +537,23 @@ def delete_job(job_id: int) -> bool:
     return result is not None
 
 
-def update_job_skills(job_id: int, skills: list) -> bool:
-    """Update the skills list for a job."""
+def update_job_skills(job_id: int, skills: list, skill_priorities: list = None) -> bool:
+    """Update the skills list and priorities for a job."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE jobs SET skills = %s WHERE id = %s RETURNING id", (skills, job_id))
+    _ensure_skill_priorities_column(cursor)
+
+    skill_priorities_json = json.dumps(skill_priorities) if skill_priorities is not None else None
+
+    try:
+        cursor.execute(
+            "UPDATE jobs SET skills = %s, skill_priorities = %s::jsonb WHERE id = %s RETURNING id", 
+            (skills, skill_priorities_json, job_id)
+        )
+    except Exception:
+        conn.rollback()
+        cursor.execute("UPDATE jobs SET skills = %s WHERE id = %s RETURNING id", (skills, job_id))
+
     result = cursor.fetchone()
     conn.commit()
     cursor.close()
