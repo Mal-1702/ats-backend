@@ -13,6 +13,7 @@ from app.db.crud import (
 from app.core.security import get_current_user
 from typing import List
 import json
+import uuid
 
 router = APIRouter()
 
@@ -179,12 +180,23 @@ async def upload_resumes_to_job(
     """
     [HR/Admin] Upload multiple resumes directly to a job.
     Stores uploader identity and links resumes to the job pool.
+    Server-side limits: max 150 files, max 10MB each.
     """
     from app.db.crud import insert_resume, link_manual_resume_to_job
     from app.workers.tasks import process_resume_task
     import os
 
-    # 1. Validate Job
+    # ── Guard: file count limit ──────────────────────────────
+    MAX_FILES = 150
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+
+    if len(files) > MAX_FILES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Maximum {MAX_FILES} resumes allowed per batch. You sent {len(files)}."
+        )
+
+    # ── Validate Job ─────────────────────────────────────────
     job = get_job_by_id(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -205,16 +217,28 @@ async def upload_resumes_to_job(
             results.append({"filename": filename, "status": "failed", "detail": "Invalid extension"})
             continue
 
-        # Save file
-        file_path = os.path.join(UPLOAD_DIR, filename)
         try:
             contents = await file.read()
+
+            # ── Guard: per-file size limit ───────────────────
+            if len(contents) > MAX_FILE_SIZE:
+                results.append({
+                    "filename": filename,
+                    "status": "failed",
+                    "detail": f"File exceeds {MAX_FILE_SIZE // (1024*1024)}MB limit"
+                })
+                continue
+
+            # ── UUID-prefixed filename (prevents overwrites) ─
+            unique_filename = f"{uuid.uuid4().hex[:8]}_{filename}"
+            file_path = os.path.join(UPLOAD_DIR, unique_filename)
+
             with open(file_path, "wb") as f:
                 f.write(contents)
             
-            # Record in DB
+            # Record in DB (store the unique filename)
             resume_id = insert_resume(
-                filename=filename,
+                filename=unique_filename,
                 uploaded_by_user_id=current_user.get("user_id"),
                 uploaded_by_name=current_user.get("full_name"),
                 upload_source="hr_manual_upload"
