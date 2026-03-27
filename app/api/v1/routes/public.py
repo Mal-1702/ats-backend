@@ -7,6 +7,9 @@ from app.db.crud import get_open_jobs, insert_application, insert_resume, get_jo
 from app.models.application import PublicJobOut, ApplicationOut
 from typing import List
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/public", tags=["Public – Candidate Portal"])
 
@@ -92,7 +95,8 @@ async def submit_application(
         with open(file_path, "wb") as f:
             f.write(contents)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save resume: {str(e)}")
+        logger.error(f"Failed to save resume file: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save your resume. Please try again.")
     finally:
         await resume_file.close()
 
@@ -104,9 +108,10 @@ async def submit_application(
             uploaded_by_name="Candidate Portal",
         )
     except Exception as e:
+        logger.error(f"Failed to record resume in DB: {e}")
         if os.path.exists(file_path):
             os.remove(file_path)
-        raise HTTPException(status_code=500, detail=f"Failed to record resume: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to record your resume. Please try again.")
 
     # ── Insert application record ─────────────────────────────
     try:
@@ -117,7 +122,8 @@ async def submit_application(
             candidate_email=candidate_email,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to record application: {str(e)}")
+        logger.error(f"Failed to record application: {e}")
+        raise HTTPException(status_code=500, detail="Failed to submit your application. Please try again.")
 
     return {
         "status": "submitted",

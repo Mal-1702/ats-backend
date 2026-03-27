@@ -32,6 +32,23 @@ def insert_resume(
     path = f"uploads/{filename}"
     file_hash = _calculate_file_hash(path)
 
+    # ── Deduplication check ──────────────────────────────────
+    if file_hash:
+        cursor.execute(
+            "SELECT id, filename FROM resumes WHERE file_hash = %s LIMIT 1;",
+            (file_hash,)
+        )
+        existing = cursor.fetchone()
+        if existing:
+            cursor.close()
+            conn.close()
+            # Remove the duplicate file from disk (keeps only the original)
+            if os.path.exists(path):
+                os.remove(path)
+            raise ValueError(
+                f"Duplicate resume detected. This file matches existing resume '{existing[1]}' (ID: {existing[0]})."
+            )
+
     try:
         text = parse_resume(path)
     except:
@@ -65,10 +82,13 @@ def get_all_resumes(
     skills: Optional[List[str]] = None,
     min_experience: Optional[float] = None,
     max_experience: Optional[float] = None,
-    keywords: Optional[str] = None
+    keywords: Optional[str] = None,
+    limit: int = 200,
+    offset: int = 0
 ):
     """
-    Fetch resumes with advanced filtering and search relevance ranking.
+    Fetch resumes with advanced filtering, search relevance ranking,
+    and pagination (default: 200 per page).
     """
     conn = get_db_connection()
     cur = conn.cursor()
@@ -130,6 +150,8 @@ def get_all_resumes(
         query += " WHERE " + " AND ".join(where_clauses)
 
     query += " ORDER BY relevance DESC, uploaded_at DESC"
+    query += " LIMIT %s OFFSET %s"
+    params.extend([limit, offset])
 
     cur.execute(query, tuple(params))
     rows = cur.fetchall()

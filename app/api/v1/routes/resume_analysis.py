@@ -7,6 +7,9 @@ import os
 import shutil
 from cachetools import TTLCache
 from pydantic import BaseModel
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.core.security import get_current_user
 from app.db.crud import get_resume_by_id, get_all_resumes
@@ -53,7 +56,8 @@ def analyze_single_resume(
         analysis["filename"] = filename
         return analysis
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+        logger.error(f"Resume analysis failed for ID {resume_id}: {e}")
+        raise HTTPException(status_code=500, detail="Resume analysis failed. Please try again.")
 
 @router.post("/batch")
 def analyze_batch(
@@ -102,7 +106,8 @@ async def upload_and_analyze(
         analysis["filename"] = file.filename
         return analysis
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Upload and analysis failed: {str(e)}")
+        logger.error(f"Upload and analysis failed: {e}")
+        raise HTTPException(status_code=500, detail="Upload and analysis failed. Please try again.")
     finally:
         # Cleanup temp file
         if os.path.exists(file_path):
@@ -178,7 +183,8 @@ async def chat_with_resume_stream(
             session["history"] = history
             
         except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            logger.error(f"SSE streaming error: {e}")
+            yield f"data: {json.dumps({'error': 'An error occurred during analysis. Please try again.'})}\n\n"
         
         yield "data: [DONE]\n\n"
 

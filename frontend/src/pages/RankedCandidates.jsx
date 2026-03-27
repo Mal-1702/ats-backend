@@ -50,10 +50,25 @@ const RankedCandidates = () => {
         setError('');
         try {
             await rankingAPI.triggerRanking(jobId);
-            setTimeout(async () => {
-                await fetchJobAndRankings();
+            // Start auto-refresh polling every 10 seconds
+            const pollInterval = setInterval(async () => {
+                try {
+                    const res = await rankingAPI.getShortlist(jobId);
+                    if (res.data?.shortlist?.length > 0) {
+                        setRankings(res.data);
+                        setProcessing(false);
+                        clearInterval(pollInterval);
+                    }
+                } catch {
+                    // Silently retry on next interval
+                }
+            }, 10000);
+            // Safety: stop polling after 5 minutes max
+            setTimeout(() => {
+                clearInterval(pollInterval);
                 setProcessing(false);
-            }, 3000);
+                fetchJobAndRankings();
+            }, 5 * 60 * 1000);
         } catch (err) {
             setError(err.response?.data?.detail || 'Failed to trigger ranking');
             setProcessing(false);

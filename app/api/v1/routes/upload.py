@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+import logging
 from app.db.crud import insert_resume
 from app.core.security import get_current_user
 import os
@@ -6,6 +7,7 @@ import shutil
 import uuid
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 ALLOWED_EXTENSIONS = {"pdf", "docx"}
 UPLOAD_DIR = "uploads"
@@ -34,7 +36,8 @@ async def upload_resume(
     try:
         contents = await file.read()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to read file: {str(e)}")
+        logger.error(f"Failed to read uploaded file: {e}")
+        raise HTTPException(status_code=500, detail="Failed to read the uploaded file. Please try again.")
     finally:
         await file.close()
 
@@ -52,7 +55,8 @@ async def upload_resume(
         with open(file_path, "wb") as f:
             f.write(contents)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+        logger.error(f"Failed to save file to disk: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save the file. Please try again.")
 
     # Insert resume metadata into database
     try:
@@ -62,10 +66,11 @@ async def upload_resume(
             uploaded_by_name="Candidate Portal",
         )
     except Exception as e:
+        logger.error(f"Failed to record resume in DB: {e}")
         # If DB insert fails, remove the uploaded file
         if os.path.exists(file_path):
             os.remove(file_path)
-        raise HTTPException(status_code=500, detail=f"Failed to record resume: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to record resume. Please try again.")
 
     return {
         "status": "uploaded",
