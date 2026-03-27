@@ -678,8 +678,23 @@ const Dashboard = () => {
                                     <p className="text-base font-black text-white mb-1 leading-none">Drop CVs here</p>
                                     <p className="text-xs text-slate-600 font-bold uppercase tracking-widest">PDF or DOCX (Max 10MB)</p>
                                 </div>
-                                <input type="file" multiple accept=".pdf,.docx" onChange={(e) => setUploadFiles(e.target.files)} className="hidden" />
+                                <input type="file" multiple accept=".pdf,.docx" onChange={(e) => {
+                                    const selected = e.target.files;
+                                    if (selected.length > 150) {
+                                        setUploadStatus({ type: 'error', message: `Maximum 150 resumes allowed per batch. You selected ${selected.length}.` });
+                                        e.target.value = '';
+                                        return;
+                                    }
+                                    setUploadFiles(selected);
+                                    setUploadStatus(null);
+                                }} className="hidden" />
                             </label>
+                            
+                            {/* Upload Limit Note */}
+                            <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
+                                <span className="text-amber-500">📌</span>
+                                <span>Note: Maximum resumes to be uploaded are <strong className="text-slate-400">150</strong> per batch.</span>
+                            </div>
                             
                             {uploadFiles.length > 0 && (
                                 <div className="bg-slate-950 rounded-2xl p-5 max-h-40 overflow-auto custom-scrollbar border border-slate-800 space-y-2">

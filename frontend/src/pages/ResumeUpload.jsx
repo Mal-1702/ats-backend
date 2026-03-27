@@ -9,6 +9,7 @@ const FileUpload = ({
   accept = "*/*",
   multiple = false,
   maxSize = 10 * 1024 * 1024,
+  maxFiles = 150,
   onFilesSelect = () => {},
   onFilesRemove = () => {},
   className = ""
@@ -58,8 +59,15 @@ const FileUpload = ({
       onFilesSelect(validFiles.slice(0, 1));
     } else {
       const updatedFiles = [...files, ...validFiles];
-      setFiles(updatedFiles);
-      onFilesSelect(updatedFiles);
+      if (updatedFiles.length > maxFiles) {
+        fileErrors.push(`Maximum ${maxFiles} resumes can be uploaded at once. You selected ${updatedFiles.length}.`);
+        const capped = updatedFiles.slice(0, maxFiles);
+        setFiles(capped);
+        onFilesSelect(capped);
+      } else {
+        setFiles(updatedFiles);
+        onFilesSelect(updatedFiles);
+      }
     }
 
     setErrors(fileErrors);
@@ -144,7 +152,7 @@ const FileUpload = ({
             </p>
             <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">
               {accept === "*/*" ? "Any file type" : accept.replace(/\./g, '').toUpperCase()} • Max {(maxSize / (1024 * 1024)).toFixed(0)}MB
-              {multiple ? " • Multiple files" : ""}
+              {multiple ? ` • Up to ${maxFiles} files` : ""}
             </p>
           </div>
         </div>
@@ -312,9 +320,16 @@ const ResumeUpload = () => {
                     accept={acceptTypes[uploadType]}
                     multiple={true}
                     maxSize={10 * 1024 * 1024}
+                    maxFiles={150}
                     onFilesSelect={handleFilesSelect}
                     onFilesRemove={handleFilesRemove}
                   />
+
+                  {/* Upload Limit Note */}
+                  <div className="mt-4 flex items-center gap-2 text-[11px] text-slate-500 font-medium">
+                    <span className="text-amber-500">📌</span>
+                    <span>Note: Maximum resumes to be uploaded are <strong className="text-slate-400">150</strong> per batch.</span>
+                  </div>
 
                   {/* Error */}
                   {error && (

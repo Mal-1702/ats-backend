@@ -123,6 +123,13 @@ const Sidebar = () => {
                     <LogOut size={16} strokeWidth={2.5} className="shrink-0 group-hover:text-red-400 transition-colors" />
                     {open && <span className="text-[13px] font-semibold">Log out</span>}
                 </button>
+
+                {/* Credit */}
+                {open && (
+                    <p className="mt-4 text-center text-[9px] text-slate-600 font-medium tracking-wide">
+                        made with <span className="text-red-400">❤️</span> by 2 freelancing students
+                    </p>
+                )}
             </div>
         </aside>
     );
