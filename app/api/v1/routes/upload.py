@@ -62,8 +62,9 @@ async def upload_resume(
     try:
         resume_id = insert_resume(
             unique_filename,
-            upload_source="candidate_portal",
-            uploaded_by_name="Candidate Portal",
+            uploaded_by_user_id=current_user.get("user_id"),
+            uploaded_by_name=current_user.get("full_name", "HR Uploader"),
+            upload_source="hr_manual_upload",
         )
     except Exception as e:
         logger.error(f"Failed to record resume in DB: {e}")
