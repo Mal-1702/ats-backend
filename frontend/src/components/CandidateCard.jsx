@@ -1,7 +1,11 @@
+import { useState, useEffect } from 'react';
 import {
     Award, TrendingUp, AlertTriangle, ChevronDown, ChevronUp,
-    CheckCircle, XCircle, Star, BarChart2, Layers, Brain, Users, Plus
+    CheckCircle, XCircle, Star, BarChart2, Layers, Brain, Users, Plus,
+    MessageSquare, Send, Trash2, Clock, Loader
 } from 'lucide-react';
+import { commentsAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import './CandidateCard.css';
 
 /**
@@ -11,6 +15,75 @@ import './CandidateCard.css';
  *   onToggle   (function) — called when button is clicked
  */
 const CandidateCard = ({ candidate, rank, isExpanded, onToggle, skillPriorities }) => {
+    const { user } = useAuth();
+
+    // ── Comment state ────────────────────────────────────────────────────
+    const [comments, setComments] = useState([]);
+    const [newComment, setNewComment] = useState('');
+    const [commentLoading, setCommentLoading] = useState(false);
+    const [commentSubmitting, setCommentSubmitting] = useState(false);
+    const [deletingId, setDeletingId] = useState(null);
+    const [commentError, setCommentError] = useState('');
+
+    // Fetch comments when card is expanded
+    useEffect(() => {
+        if (isExpanded && candidate.resume_id) {
+            fetchComments();
+        }
+    }, [isExpanded, candidate.resume_id]);
+
+    const fetchComments = async () => {
+        if (!candidate.resume_id) return;
+        setCommentLoading(true);
+        setCommentError('');
+        try {
+            const res = await commentsAPI.getComments(candidate.resume_id);
+            setComments(res.data.comments || []);
+        } catch {
+            setCommentError('Failed to load comments.');
+        } finally {
+            setCommentLoading(false);
+        }
+    };
+
+    const handleAddComment = async () => {
+        const trimmed = newComment.trim();
+        if (!trimmed) return;
+        setCommentSubmitting(true);
+        setCommentError('');
+        try {
+            const res = await commentsAPI.addComment(candidate.resume_id, trimmed);
+            // Optimistic: prepend the new comment
+            setComments(prev => [res.data.comment, ...prev]);
+            setNewComment('');
+        } catch (err) {
+            setCommentError(err.response?.data?.detail || 'Failed to add comment.');
+        } finally {
+            setCommentSubmitting(false);
+        }
+    };
+
+    const handleDeleteComment = async (commentId) => {
+        if (!window.confirm('Are you sure you want to delete this comment?')) return;
+        setDeletingId(commentId);
+        setCommentError('');
+        try {
+            await commentsAPI.deleteComment(commentId);
+            // Optimistic: remove from list
+            setComments(prev => prev.filter(c => c.id !== commentId));
+        } catch (err) {
+            setCommentError(err.response?.data?.detail || 'Failed to delete comment.');
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    const canDeleteComment = (comment) => {
+        if (!user) return false;
+        if (comment.user_id === user.id) return true;
+        if (user.role === 'admin' || user.role === 'ceo') return true;
+        return false;
+    };
 
     const getTierColor = t => ({ A: 'tier-a', B: 'tier-b', C: 'tier-c', D: 'tier-d' }[t] || 'tier-default');
     const getScoreColor = s => s >= 80 ? 'score-excellent' : s >= 60 ? 'score-good' : s >= 40 ? 'score-fair' : 'score-poor';
@@ -296,6 +369,91 @@ const CandidateCard = ({ candidate, rank, isExpanded, onToggle, skillPriorities 
                                         </ul>
                                     </>
                                 )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 5. HR Comments ─────────────────────────────── */}
+                    <div className="detail-card detail-full comments-section">
+                        <div className="detail-card-header">
+                            <MessageSquare size={15} />
+                            <span>HR Comments</span>
+                            <span className="comment-count">{comments.length}</span>
+                        </div>
+
+                        {/* Comment input */}
+                        <div className="comment-input-row">
+                            <input
+                                type="text"
+                                className="comment-input"
+                                placeholder="Add a comment about this candidate..."
+                                value={newComment}
+                                onChange={(e) => setNewComment(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && !commentSubmitting && handleAddComment()}
+                                disabled={commentSubmitting}
+                                maxLength={2000}
+                            />
+                            <button
+                                className="comment-send-btn"
+                                onClick={handleAddComment}
+                                disabled={commentSubmitting || !newComment.trim()}
+                                aria-label="Submit comment"
+                            >
+                                {commentSubmitting ? <Loader size={16} className="animate-spin" /> : <Send size={16} />}
+                            </button>
+                        </div>
+
+                        {/* Error */}
+                        {commentError && (
+                            <div className="comment-error">
+                                <XCircle size={14} />
+                                {commentError}
+                            </div>
+                        )}
+
+                        {/* Comment list */}
+                        {commentLoading ? (
+                            <div className="comment-loading">
+                                <Loader size={18} className="animate-spin" />
+                                <span>Loading comments...</span>
+                            </div>
+                        ) : comments.length === 0 ? (
+                            <div className="comment-empty">
+                                No comments yet. Be the first to leave feedback.
+                            </div>
+                        ) : (
+                            <div className="comment-list">
+                                {comments.map(c => (
+                                    <div key={c.id} className="comment-item">
+                                        <div className="comment-item-header">
+                                            <div className="comment-user-info">
+                                                <span className="comment-avatar">
+                                                    {(c.user || '??').charAt(0).toUpperCase()}
+                                                </span>
+                                                <span className="comment-user-name">{c.user}</span>
+                                                <span className="comment-time">
+                                                    <Clock size={10} />
+                                                    {new Date(c.timestamp).toLocaleString()}
+                                                </span>
+                                            </div>
+                                            {canDeleteComment(c) && (
+                                                <button
+                                                    className="comment-delete-btn"
+                                                    onClick={() => handleDeleteComment(c.id)}
+                                                    disabled={deletingId === c.id}
+                                                    aria-label="Delete comment"
+                                                    title="Delete comment"
+                                                >
+                                                    {deletingId === c.id
+                                                        ? <Loader size={13} className="animate-spin" />
+                                                        : <Trash2 size={13} />
+                                                    }
+                                                </button>
+                                            )}
+                                        </div>
+                                        <p className="comment-text">{c.comment}</p>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>

@@ -1006,3 +1006,137 @@ def activate_user(user_id: int):
     conn.commit()
     cursor.close()
     conn.close()
+
+
+# ============================================
+# CANDIDATE COMMENTS CRUD
+# ============================================
+
+def _ensure_comments_table():
+    """Create the candidate_comments table if it doesn't exist."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS candidate_comments (
+            id SERIAL PRIMARY KEY,
+            resume_id INTEGER NOT NULL REFERENCES resumes(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            comment_text TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def create_comment(resume_id: int, user_id: int, comment_text: str) -> dict:
+    """Insert a new comment and return it with user name."""
+    _ensure_comments_table()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Verify resume exists
+    cursor.execute("SELECT id FROM resumes WHERE id = %s;", (resume_id,))
+    if not cursor.fetchone():
+        cursor.close()
+        conn.close()
+        raise ValueError(f"Resume with id {resume_id} not found.")
+
+    cursor.execute(
+        """
+        INSERT INTO candidate_comments (resume_id, user_id, comment_text)
+        VALUES (%s, %s, %s)
+        RETURNING id, created_at;
+        """,
+        (resume_id, user_id, comment_text),
+    )
+    row = cursor.fetchone()
+    comment_id, created_at = row[0], row[1]
+
+    # Fetch user's full name
+    cursor.execute("SELECT full_name FROM users WHERE id = %s;", (user_id,))
+    user_row = cursor.fetchone()
+    user_name = user_row[0] if user_row else "Unknown"
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return {
+        "id": comment_id,
+        "user": user_name,
+        "user_id": user_id,
+        "comment": comment_text,
+        "timestamp": created_at.isoformat() if created_at else None,
+    }
+
+
+def get_comments_by_resume(resume_id: int) -> list:
+    """Fetch all comments for a given resume, newest first."""
+    _ensure_comments_table()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT cc.id, cc.user_id, cc.comment_text, cc.created_at, u.full_name
+        FROM candidate_comments cc
+        JOIN users u ON u.id = cc.user_id
+        WHERE cc.resume_id = %s
+        ORDER BY cc.created_at DESC;
+        """,
+        (resume_id,),
+    )
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return [
+        {
+            "id": r[0],
+            "user_id": r[1],
+            "comment": r[2],
+            "timestamp": r[3].isoformat() if r[3] else None,
+            "user": r[4] or "Unknown",
+        }
+        for r in rows
+    ]
+
+
+def get_comment_by_id(comment_id: int) -> Optional[dict]:
+    """Fetch a single comment by its ID. Returns None if not found."""
+    _ensure_comments_table()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, resume_id, user_id, comment_text, created_at FROM candidate_comments WHERE id = %s;",
+        (comment_id,),
+    )
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if not row:
+        return None
+    return {
+        "id": row[0],
+        "resume_id": row[1],
+        "user_id": row[2],
+        "comment": row[3],
+        "timestamp": row[4].isoformat() if row[4] else None,
+    }
+
+
+def delete_comment_by_id(comment_id: int) -> bool:
+    """Delete a comment. Returns True if deleted, False if not found."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM candidate_comments WHERE id = %s RETURNING id;",
+        (comment_id,),
+    )
+    result = cursor.fetchone()
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return result is not None

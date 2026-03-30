@@ -94,6 +94,12 @@ export const rankingAPI = {
     getFullReport: (jobId) => api.get(`/rank/job/${jobId}/full-report`),
 };
 
+export const commentsAPI = {
+    getComments: (resumeId) => api.get(`/comments/${resumeId}`),
+    addComment: (resumeId, commentText) => api.post('/comments', { resume_id: resumeId, comment_text: commentText }),
+    deleteComment: (commentId) => api.delete(`/comments/${commentId}`),
+};
+
 export const resumeAnalysisAPI = {
     analyzeSingle: (resumeId) => api.post(`/resume-analysis/single/${resumeId}`),
     analyzeBatch: (resumeIds) => api.post('/resume-analysis/batch', { resume_ids: resumeIds }),
