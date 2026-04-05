@@ -25,6 +25,12 @@ const ResumeList = () => {
     const [expRange, setExpRange] = useState({ min: 0, max: 20 });
     const [keyword, setKeyword] = useState('');
     const [hoveredItem, setHoveredItem] = useState(null);
+    const [expandedNotes, setExpandedNotes] = useState({});
+
+    const toggleNote = (id, e) => {
+        e.stopPropagation();
+        setExpandedNotes(prev => ({ ...prev, [id]: !prev[id] }));
+    };
 
     useEffect(() => {
         fetchResumes();
@@ -390,6 +396,7 @@ const ResumeList = () => {
                                 {resumes.map(resume => {
                                     const isHovered = hoveredItem === resume.id;
                                     const isSelected = selectedResumes.includes(resume.id);
+                                    const isExpanded = expandedNotes[resume.id];
                                     return (
                                         <div
                                             key={resume.id}
@@ -399,11 +406,13 @@ const ResumeList = () => {
                                         >
                                             <div
                                                 className={`relative overflow-hidden border transition-all duration-300 ease-in-out cursor-pointer ${
-                                                    isHovered
-                                                        ? 'h-[120px] border-blue-500 shadow-lg shadow-blue-500/20 bg-blue-500/5'
-                                                        : isSelected
-                                                            ? 'h-[88px] border-blue-500/30 bg-blue-600/5'
-                                                            : 'h-[88px] border-slate-800 bg-slate-900/40 hover:border-blue-500/50'
+                                                    isExpanded
+                                                        ? 'h-auto min-h-[140px] py-4 border-blue-500 shadow-lg bg-blue-500/10'
+                                                        : isHovered
+                                                            ? 'h-[120px] border-blue-500 shadow-lg shadow-blue-500/20 bg-blue-500/5'
+                                                            : isSelected
+                                                                ? 'h-[88px] border-blue-500/30 bg-blue-600/5'
+                                                                : 'h-[88px] border-slate-800 bg-slate-900/40 hover:border-blue-500/50'
                                                 }`}
                                             >
                                                 {/* Corner brackets on hover */}
@@ -458,25 +467,25 @@ const ResumeList = () => {
                                                                     {resume.uploaded_by_name || (resume.upload_source === 'hr_manual_upload' ? 'HR Upload' : 'Candidate Portal')}
                                                                 </span>
                                                             </div>
-                                                            {/* Candidate Preferences row */}
-                                                            {(resume.expected_salary || resume.availability || resume.candidate_note) && (
-                                                                <div className={`flex items-center gap-4 mt-2 text-xs font-medium transition-opacity duration-300 ${
-                                                                    isHovered ? 'opacity-100' : 'opacity-75'
-                                                                }`}>
-                                                                    {resume.expected_salary && (
-                                                                        <span className="flex items-center gap-1 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                                                                            💰 {resume.expected_salary}
-                                                                        </span>
-                                                                    )}
-                                                                    {resume.availability && (
-                                                                        <span className="flex items-center gap-1 text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20">
-                                                                            📅 {resume.availability}
-                                                                        </span>
-                                                                    )}
+                                                            {/* Candidate Preferences panel */}
+                                                            {(resume.expected_salary || resume.availability || resume.candidate_note) && isExpanded && (
+                                                                <div className="flex flex-col gap-2 p-4 bg-slate-950/70 backdrop-blur-sm rounded-xl border border-slate-800 mt-3 w-full xl:w-[90%] relative z-20 shadow-inner animate-in fade-in slide-in-from-top-2 duration-300">
+                                                                    <div className="flex items-center gap-4 text-xs font-medium">
+                                                                        {resume.expected_salary && (
+                                                                            <span className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 px-2.5 py-1.5 rounded-md border border-emerald-500/20">
+                                                                                💰 {resume.expected_salary}
+                                                                            </span>
+                                                                        )}
+                                                                        {resume.availability && (
+                                                                            <span className="flex items-center gap-1.5 text-blue-400 bg-blue-500/10 px-2.5 py-1.5 rounded-md border border-blue-500/20">
+                                                                                📅 {resume.availability}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                     {resume.candidate_note && (
-                                                                        <span className="flex items-center gap-1 text-slate-300 italic truncate max-w-[200px] xl:max-w-[300px]">
+                                                                        <div className="mt-1.5 text-sm text-slate-300 italic leading-relaxed">
                                                                             📝 "{resume.candidate_note}"
-                                                                        </span>
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             )}
@@ -485,8 +494,21 @@ const ResumeList = () => {
 
                                                     {/* RIGHT: Action buttons — visible on hover */}
                                                     <div className={`flex items-center gap-2 shrink-0 ml-4 transition-opacity duration-300 ${
-                                                        isHovered ? 'opacity-100' : 'opacity-0 lg:opacity-40'
+                                                        isHovered || isExpanded ? 'opacity-100' : 'opacity-0 lg:opacity-40'
                                                     }`}>
+                                                        {(resume.expected_salary || resume.availability || resume.candidate_note) && (
+                                                            <button
+                                                                onClick={(e) => toggleNote(resume.id, e)}
+                                                                className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold border rounded-xl transition-all ${
+                                                                    isExpanded 
+                                                                        ? 'bg-blue-600/10 text-blue-400 border-blue-500/30' 
+                                                                        : 'text-slate-400 border-slate-800 hover:bg-emerald-600/10 hover:text-emerald-400 hover:border-emerald-500/30'
+                                                                }`}
+                                                            >
+                                                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                                                {isExpanded ? 'Less Info' : 'Read More'}
+                                                            </button>
+                                                        )}
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); handleView(resume.id); }}
                                                             className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-400 border border-slate-800 rounded-xl hover:bg-blue-600/10 hover:text-blue-400 hover:border-blue-500/30 transition-all"
