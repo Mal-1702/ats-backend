@@ -15,6 +15,9 @@ const CandidatePortal = () => {
         candidate_name: '',
         candidate_email: '',
         resume_file: null,
+        expected_salary: '',
+        availability: '',
+        candidate_note: '',
     });
 
     const fileInputRef = useRef(null);
@@ -30,7 +33,7 @@ const CandidatePortal = () => {
         setSelectedJob(job);
         setStep('form');
         setError('');
-        setForm({ candidate_name: '', candidate_email: '', resume_file: null });
+        setForm({ candidate_name: '', candidate_email: '', resume_file: null, expected_salary: '', availability: '', candidate_note: '' });
     };
 
     const handleDrag = useCallback((e) => {
@@ -82,6 +85,9 @@ const CandidatePortal = () => {
         formData.append('candidate_name', form.candidate_name.trim());
         formData.append('candidate_email', form.candidate_email.trim());
         formData.append('resume_file', form.resume_file);
+        if (form.expected_salary.trim()) formData.append('expected_salary', form.expected_salary.trim());
+        if (form.availability.trim()) formData.append('availability', form.availability.trim());
+        if (form.candidate_note.trim()) formData.append('candidate_note', form.candidate_note.trim());
 
         try {
             await publicAPI.submitApplication(formData);
@@ -97,7 +103,7 @@ const CandidatePortal = () => {
         setStep('jobs');
         setSelectedJob(null);
         setError('');
-        setForm({ candidate_name: '', candidate_email: '', resume_file: null });
+        setForm({ candidate_name: '', candidate_email: '', resume_file: null, expected_salary: '', availability: '', candidate_note: '' });
     };
 
     return (
@@ -173,6 +179,42 @@ const CandidatePortal = () => {
                             </div>
                         </div>
 
+                        {/* ── Job Details Panel ─────────────── */}
+                        {(selectedJob?.long_description || selectedJob?.work_schedule || selectedJob?.salary_range || selectedJob?.key_highlights?.length > 0) && (
+                            <div className="cp-job-details-panel">
+                                {selectedJob.long_description && (
+                                    <div className="cp-detail-block">
+                                        <h4>About This Role</h4>
+                                        <p style={{ whiteSpace: 'pre-wrap', lineHeight: '1.7' }}>{selectedJob.long_description}</p>
+                                    </div>
+                                )}
+                                <div className="cp-detail-row">
+                                    {selectedJob.work_schedule && (
+                                        <div className="cp-detail-chip">
+                                            <span className="cp-detail-chip-label">📅 Schedule</span>
+                                            <span className="cp-detail-chip-value">{selectedJob.work_schedule}</span>
+                                        </div>
+                                    )}
+                                    {selectedJob.salary_range && (
+                                        <div className="cp-detail-chip">
+                                            <span className="cp-detail-chip-label">💰 Salary</span>
+                                            <span className="cp-detail-chip-value">{selectedJob.salary_range}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                {selectedJob.key_highlights?.length > 0 && (
+                                    <div className="cp-highlights">
+                                        <h4>Highlights</h4>
+                                        <div className="cp-highlights-list">
+                                            {selectedJob.key_highlights.map((h, i) => (
+                                                <span key={i} className="cp-highlight-tag">✨ {h}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         <form className="cp-form" onSubmit={handleSubmit} noValidate>
                             <div className="cp-form-group">
                                 <label htmlFor="cp-name">Full Name</label>
@@ -244,6 +286,52 @@ const CandidatePortal = () => {
                                     onChange={handleFileInput}
                                     style={{ display: 'none' }}
                                 />
+                            </div>
+
+                            {/* ── Candidate Preferences ──────────── */}
+                            <div className="cp-form-group">
+                                <label htmlFor="cp-salary">Expected Salary <span className="cp-optional">(optional)</span></label>
+                                <input
+                                    id="cp-salary"
+                                    type="text"
+                                    placeholder="e.g., ₹8-10 LPA or $90k"
+                                    value={form.expected_salary}
+                                    onChange={(e) => setForm((p) => ({ ...p, expected_salary: e.target.value }))}
+                                    maxLength={100}
+                                />
+                            </div>
+
+                            <div className="cp-form-group">
+                                <label htmlFor="cp-availability">Availability <span className="cp-optional">(optional)</span></label>
+                                <select
+                                    id="cp-availability"
+                                    value={form.availability}
+                                    onChange={(e) => setForm((p) => ({ ...p, availability: e.target.value }))}
+                                >
+                                    <option value="">Select availability</option>
+                                    <option value="Immediate">Immediate</option>
+                                    <option value="1 week">1 week notice</option>
+                                    <option value="2 weeks">2 weeks notice</option>
+                                    <option value="1 month">1 month notice</option>
+                                    <option value="2 months">2 months notice</option>
+                                    <option value="3+ months">3+ months notice</option>
+                                </select>
+                            </div>
+
+                            <div className="cp-form-group">
+                                <label htmlFor="cp-note">Why are you suitable for this role? <span className="cp-optional">(optional)</span></label>
+                                <textarea
+                                    id="cp-note"
+                                    placeholder="Tell us why you're a great fit for this position..."
+                                    value={form.candidate_note}
+                                    onChange={(e) => setForm((p) => ({ ...p, candidate_note: e.target.value }))}
+                                    maxLength={2000}
+                                    rows={4}
+                                    style={{ resize: 'vertical', minHeight: '100px' }}
+                                />
+                                {form.candidate_note && (
+                                    <div className="cp-char-count">{form.candidate_note.length}/2000</div>
+                                )}
                             </div>
 
                             {error && (

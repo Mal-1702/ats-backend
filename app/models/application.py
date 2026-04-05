@@ -4,12 +4,17 @@ from datetime import datetime
 
 
 class PublicJobOut(BaseModel):
-    """Public-facing slimmed-down job view (no internal scoring data)."""
+    """Public-facing job view for candidates (no internal scoring data)."""
     id: int
     title: str
     skills: List[str]
     min_experience: int
     created_at: datetime
+    # ── Extended job details ──
+    long_description: Optional[str] = None
+    work_schedule: Optional[str] = None
+    salary_range: Optional[str] = None
+    key_highlights: Optional[List[str]] = None
 
     class Config:
         from_attributes = True

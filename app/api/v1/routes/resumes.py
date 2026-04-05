@@ -46,6 +46,10 @@ def list_resumes(
             extracted_skills=row[4],
             uploaded_by_name=row[5] if len(row) > 5 else None,
             upload_source=row[6] if len(row) > 6 else None,
+            # Candidate application fields (joined from applications table when job_id filter is used)
+            expected_salary=row[7] if len(row) > 7 else None,
+            availability=row[8] if len(row) > 8 else None,
+            candidate_note=row[9] if len(row) > 9 else None,
         )
         for row in rows
     ]

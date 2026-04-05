@@ -292,6 +292,11 @@ def get_job_shortlist(
         upload_source      = r[6] if len(r) > 6 else "candidate_portal"
         uploaded_by_name    = r[7] if len(r) > 7 else None
 
+        # Candidate application preferences (from LEFT JOIN on applications)
+        expected_salary     = r[8] if len(r) > 8 else None
+        availability_val    = r[9] if len(r) > 9 else None
+        candidate_note      = r[10] if len(r) > 10 else None
+
         candidate = {
             "resume_id":          resume_id,
             "candidate_filename": filename,
@@ -300,6 +305,10 @@ def get_job_shortlist(
             "ranked_at":          ranked_at,
             "upload_source":      upload_source,
             "uploaded_by_name":    uploaded_by_name,
+            # Candidate application preferences
+            "expected_salary":    expected_salary,
+            "availability":       availability_val,
+            "candidate_note":     candidate_note,
             # Score breakdown bars
             "breakdown": breakdown or {
                 "skill_match":      0,

@@ -797,3 +797,60 @@
 .animate-spin {
     animation: spin 1s linear infinite;
 }
+
+/* ═══════════════════════════════════════════════════
+   CANDIDATE PREFERENCES SECTION
+═══════════════════════════════════════════════════ */
+.candidate-prefs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.pref-item {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0.75rem;
+    padding: 0.875rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.pref-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.pref-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #e2e8f0;
+}
+
+.candidate-note-block {
+    margin-top: 0.75rem;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0.75rem;
+    padding: 0.875rem 1rem;
+}
+
+.candidate-note-text {
+    margin: 0.35rem 0 0;
+    font-size: 0.84rem;
+    line-height: 1.7;
+    color: #cbd5e1;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+@media (max-width: 640px) {
+    .candidate-prefs-grid {
+        grid-template-columns: 1fr;
+    }
+}

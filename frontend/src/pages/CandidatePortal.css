@@ -558,6 +558,147 @@
     border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
+/* ═══════════════════════════════════════════════════
+   JOB DETAILS PANEL (shown on apply page)
+═══════════════════════════════════════════════════ */
+.cp-job-details-panel {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(99, 179, 237, 0.12);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.cp-detail-block {
+    margin-bottom: 1rem;
+}
+
+.cp-detail-block h4,
+.cp-highlights h4 {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #64748b;
+    margin: 0 0 0.5rem;
+}
+
+.cp-detail-block p {
+    font-size: 0.9rem;
+    color: #cbd5e1;
+    margin: 0;
+}
+
+.cp-detail-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.cp-detail-chip {
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.15);
+    border-radius: 0.75rem;
+    padding: 0.6rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    flex: 1;
+    min-width: 140px;
+}
+
+.cp-detail-chip-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.cp-detail-chip-value {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #e2e8f0;
+}
+
+.cp-highlights {
+    margin-top: 0.5rem;
+}
+
+.cp-highlights-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.cp-highlight-tag {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.08);
+    border: 1px solid rgba(52, 211, 153, 0.15);
+    border-radius: 0.5rem;
+    padding: 0.3rem 0.7rem;
+}
+
+/* ── Optional label + character count ──────────────── */
+.cp-optional {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #475569;
+}
+
+.cp-char-count {
+    text-align: right;
+    font-size: 0.7rem;
+    color: #475569;
+    margin-top: 0.25rem;
+}
+
+/* ── Select & textarea styling for candidate form ──── */
+.cp-form select {
+    width: 100%;
+    padding: 0.875rem 1.25rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(99, 179, 237, 0.12);
+    background: rgba(15, 23, 42, 0.6);
+    color: #e2e8f0;
+    font-size: 0.9rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.cp-form select:focus {
+    outline: none;
+    border-color: rgba(99, 179, 237, 0.4);
+}
+
+.cp-form textarea {
+    width: 100%;
+    padding: 0.875rem 1.25rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(99, 179, 237, 0.12);
+    background: rgba(15, 23, 42, 0.6);
+    color: #e2e8f0;
+    font-size: 0.9rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    transition: border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.cp-form textarea:focus {
+    outline: none;
+    border-color: rgba(99, 179, 237, 0.4);
+}
+
+.cp-form textarea::placeholder {
+    color: #475569;
+    font-weight: 400;
+}
+
 /* ─── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 640px) {
     .cp-main {
@@ -576,5 +717,9 @@
         flex-direction: column;
         gap: 0.25rem;
         text-align: center;
+    }
+
+    .cp-detail-row {
+        flex-direction: column;
     }
 }

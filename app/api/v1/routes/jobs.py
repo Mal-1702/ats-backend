@@ -33,8 +33,23 @@ def _parse_skill_priorities(raw) -> list:
 
 
 def _row_to_jobout(row) -> JobOut:
-    """Convert a DB row tuple to a JobOut model, safe for 7 or 8 columns."""
+    """Convert a DB row tuple to a JobOut model, safe for 7, 8, or 12 columns."""
     skill_priorities = _parse_skill_priorities(row[7]) if len(row) > 7 else []
+
+    # Extended fields: indices 8-11 (long_description, work_schedule, salary_range, key_highlights)
+    long_description = row[8] if len(row) > 8 else None
+    work_schedule = row[9] if len(row) > 9 else None
+    salary_range = row[10] if len(row) > 10 else None
+
+    # key_highlights comes from JSONB — may be list, string, or None
+    raw_highlights = row[11] if len(row) > 11 else None
+    if isinstance(raw_highlights, str):
+        try:
+            raw_highlights = json.loads(raw_highlights)
+        except Exception:
+            raw_highlights = None
+    key_highlights = raw_highlights if isinstance(raw_highlights, list) else None
+
     return JobOut(
         id=row[0],
         title=row[1],
@@ -44,6 +59,10 @@ def _row_to_jobout(row) -> JobOut:
         min_experience=row[4],
         created_at=row[5],
         is_active=row[6] if len(row) > 6 else True,
+        long_description=long_description,
+        work_schedule=work_schedule,
+        salary_range=salary_range,
+        key_highlights=key_highlights,
     )
 
 

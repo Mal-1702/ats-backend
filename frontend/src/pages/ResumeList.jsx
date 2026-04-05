@@ -458,6 +458,28 @@ const ResumeList = () => {
                                                                     {resume.uploaded_by_name || (resume.upload_source === 'hr_manual_upload' ? 'HR Upload' : 'Candidate Portal')}
                                                                 </span>
                                                             </div>
+                                                            {/* Candidate Preferences row */}
+                                                            {(resume.expected_salary || resume.availability || resume.candidate_note) && (
+                                                                <div className={`flex items-center gap-4 mt-2 text-xs font-medium transition-opacity duration-300 ${
+                                                                    isHovered ? 'opacity-100' : 'opacity-75'
+                                                                }`}>
+                                                                    {resume.expected_salary && (
+                                                                        <span className="flex items-center gap-1 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                                                                            💰 {resume.expected_salary}
+                                                                        </span>
+                                                                    )}
+                                                                    {resume.availability && (
+                                                                        <span className="flex items-center gap-1 text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20">
+                                                                            📅 {resume.availability}
+                                                                        </span>
+                                                                    )}
+                                                                    {resume.candidate_note && (
+                                                                        <span className="flex items-center gap-1 text-slate-300 italic truncate max-w-[200px] xl:max-w-[300px]">
+                                                                            📝 "{resume.candidate_note}"
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
 

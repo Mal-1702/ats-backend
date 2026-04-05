@@ -70,6 +70,11 @@ class JobCreate(BaseModel):
     skill_priorities: Optional[List[SkillWithPriority]] = None
     keywords: Optional[List[str]] = []
     min_experience: int
+    # ── Extended job details (all optional) ──
+    long_description: Optional[str] = None
+    work_schedule: Optional[str] = None
+    salary_range: Optional[str] = None
+    key_highlights: Optional[List[str]] = None
 
     def get_skill_priority_map(self) -> dict:
         """
@@ -94,6 +99,11 @@ class JobOut(BaseModel):
     min_experience: int
     created_at: datetime
     is_active: bool = True
+    # ── Extended job details ──
+    long_description: Optional[str] = None
+    work_schedule: Optional[str] = None
+    salary_range: Optional[str] = None
+    key_highlights: Optional[List[str]] = None
 
     class Config:
         from_attributes = True

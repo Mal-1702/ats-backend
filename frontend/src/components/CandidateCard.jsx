@@ -372,8 +372,33 @@ const CandidateCard = ({ candidate, rank, isExpanded, onToggle, skillPriorities 
                             </div>
                         )}
                     </div>
+                    {/* 5. Candidate Preferences ─────────────────── */}
+                    {(candidate.expected_salary || candidate.availability || candidate.candidate_note) && (
+                        <div className="detail-card detail-full">
+                            <div className="detail-card-header">
+                                <Users size={15} />
+                                <span>Candidate Preferences</span>
+                            </div>
+                            <div className="candidate-prefs-grid">
+                                <div className="pref-item">
+                                    <span className="pref-label">💰 Expected Salary</span>
+                                    <span className="pref-value">{candidate.expected_salary || 'Not provided'}</span>
+                                </div>
+                                <div className="pref-item">
+                                    <span className="pref-label">📅 Availability</span>
+                                    <span className="pref-value">{candidate.availability || 'Not provided'}</span>
+                                </div>
+                            </div>
+                            {candidate.candidate_note && (
+                                <div className="candidate-note-block">
+                                    <span className="pref-label">📝 Why they're suitable</span>
+                                    <p className="candidate-note-text">{candidate.candidate_note}</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
-                    {/* 5. HR Comments ─────────────────────────────── */}
+                    {/* 6. HR Comments ─────────────────────────────── */}
                     <div className="detail-card detail-full comments-section">
                         <div className="detail-card-header">
                             <MessageSquare size={15} />

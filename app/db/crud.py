@@ -94,8 +94,9 @@ def get_all_resumes(
     cur = conn.cursor()
 
     # Build the base query with dynamic ranking
-    base_query = """
-        SELECT id, filename, uploaded_at, experience_years, extracted_skills, uploaded_by_name, upload_source
+    base_select = """
+        SELECT r.id, r.filename, r.uploaded_at, r.experience_years, r.extracted_skills, r.uploaded_by_name, r.upload_source,
+               a.expected_salary, a.availability, a.candidate_note
     """
     
     # Ranking logic
@@ -104,52 +105,62 @@ def get_all_resumes(
     
     if search_query:
         # Boost for filename match
-        ranking_parts.append("(CASE WHEN filename ILIKE %s THEN 10 ELSE 0 END)")
+        ranking_parts.append("(CASE WHEN r.filename ILIKE %s THEN 10 ELSE 0 END)")
         params.append(f"%{search_query}%")
-        # Boost for name/role in parsed_text (if we had specific columns, otherwise we scan text)
-        ranking_parts.append("(CASE WHEN parsed_text ILIKE %s THEN 5 ELSE 0 END)")
+        # Boost for name/role in parsed_text
+        ranking_parts.append("(CASE WHEN r.parsed_text ILIKE %s THEN 5 ELSE 0 END)")
         params.append(f"%{search_query}%")
 
     if skills:
         # Boost for skill matches
         for skill in skills:
-            ranking_parts.append("(CASE WHEN %s = ANY(extracted_skills) THEN 8 ELSE 0 END)")
+            ranking_parts.append("(CASE WHEN %s = ANY(r.extracted_skills) THEN 8 ELSE 0 END)")
             params.append(skill)
 
     if keywords:
-        ranking_parts.append("(CASE WHEN parsed_text ILIKE %s THEN 3 ELSE 0 END)")
+        ranking_parts.append("(CASE WHEN r.parsed_text ILIKE %s THEN 3 ELSE 0 END)")
         params.append(f"%{keywords}%")
 
     relevance_score = " + ".join(ranking_parts)
     
-    query = f"{base_query}, ({relevance_score}) as relevance FROM resumes"
+    query = f"""
+        {base_select}, ({relevance_score}) as relevance 
+        FROM resumes r
+        LEFT JOIN LATERAL (
+            SELECT expected_salary, availability, candidate_note
+            FROM applications
+            WHERE resume_id = r.id
+            ORDER BY submitted_at DESC
+            LIMIT 1
+        ) a ON true
+    """
     where_clauses = []
 
     if search_query:
-        where_clauses.append("(filename ILIKE %s OR parsed_text ILIKE %s)")
+        where_clauses.append("(r.filename ILIKE %s OR r.parsed_text ILIKE %s)")
         params.extend([f"%{search_query}%", f"%{search_query}%"])
     
     if skills:
         # Filter for resumes containing ALL selected skills (as requested in Feature 4)
-        where_clauses.append("extracted_skills @> %s")
+        where_clauses.append("r.extracted_skills @> %s")
         params.append(skills)
 
     if min_experience is not None:
-        where_clauses.append("experience_years >= %s")
+        where_clauses.append("r.experience_years >= %s")
         params.append(min_experience)
     
     if max_experience is not None:
-        where_clauses.append("experience_years <= %s")
+        where_clauses.append("r.experience_years <= %s")
         params.append(max_experience)
 
     if keywords:
-        where_clauses.append("parsed_text ILIKE %s")
+        where_clauses.append("r.parsed_text ILIKE %s")
         params.append(f"%{keywords}%")
 
     if where_clauses:
         query += " WHERE " + " AND ".join(where_clauses)
 
-    query += " ORDER BY relevance DESC, uploaded_at DESC"
+    query += " ORDER BY relevance DESC, r.uploaded_at DESC"
     query += " LIMIT %s OFFSET %s"
     params.extend([limit, offset])
 
@@ -195,6 +206,25 @@ def _ensure_skill_priorities_column(cursor) -> bool:
         return False
 
 
+def _ensure_extended_columns(cursor):
+    """
+    Safely add new nullable columns to jobs and applications tables.
+    Uses IF NOT EXISTS so it's safe to call on every startup.
+    """
+    try:
+        # ── Jobs table extensions ─────────────────────────────────
+        cursor.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS long_description TEXT DEFAULT NULL;")
+        cursor.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS work_schedule VARCHAR(255) DEFAULT NULL;")
+        cursor.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS salary_range VARCHAR(255) DEFAULT NULL;")
+        cursor.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS key_highlights JSONB DEFAULT NULL;")
+        # ── Applications table extensions ─────────────────────────
+        cursor.execute("ALTER TABLE applications ADD COLUMN IF NOT EXISTS expected_salary VARCHAR(255) DEFAULT NULL;")
+        cursor.execute("ALTER TABLE applications ADD COLUMN IF NOT EXISTS availability VARCHAR(255) DEFAULT NULL;")
+        cursor.execute("ALTER TABLE applications ADD COLUMN IF NOT EXISTS candidate_note TEXT DEFAULT NULL;")
+    except Exception:
+        pass
+
+
 def insert_job(job: JobCreate) -> int:
     """
     Insert a new job into the database.
@@ -205,6 +235,7 @@ def insert_job(job: JobCreate) -> int:
     cursor = conn.cursor()
 
     _ensure_skill_priorities_column(cursor)
+    _ensure_extended_columns(cursor)
 
     # Serialise skill_priorities to a JSON list if provided
     skill_priorities_json = None
@@ -213,10 +244,16 @@ def insert_job(job: JobCreate) -> int:
             [sp.model_dump() for sp in job.skill_priorities]
         )
 
+    # Serialise key_highlights to JSON
+    key_highlights_json = json.dumps(job.key_highlights) if job.key_highlights else None
+
     try:
         query = """
-            INSERT INTO jobs (title, skills, keywords, min_experience, skill_priorities)
-            VALUES (%s, %s, %s, %s, %s::jsonb)
+            INSERT INTO jobs (
+                title, skills, keywords, min_experience, skill_priorities,
+                long_description, work_schedule, salary_range, key_highlights
+            )
+            VALUES (%s, %s, %s, %s, %s::jsonb, %s, %s, %s, %s::jsonb)
             RETURNING id;
         """
         cursor.execute(
@@ -227,17 +264,30 @@ def insert_job(job: JobCreate) -> int:
                 job.keywords,
                 job.min_experience,
                 skill_priorities_json,
+                job.long_description,
+                job.work_schedule,
+                job.salary_range,
+                key_highlights_json,
             )
         )
     except Exception:
         # Fallback for DBs that don't have the column yet
         conn.rollback()
-        query = """
-            INSERT INTO jobs (title, skills, keywords, min_experience)
-            VALUES (%s, %s, %s, %s)
-            RETURNING id;
-        """
-        cursor.execute(query, (job.title, job.skills, job.keywords, job.min_experience))
+        try:
+            query = """
+                INSERT INTO jobs (title, skills, keywords, min_experience, skill_priorities)
+                VALUES (%s, %s, %s, %s, %s::jsonb)
+                RETURNING id;
+            """
+            cursor.execute(query, (job.title, job.skills, job.keywords, job.min_experience, skill_priorities_json))
+        except Exception:
+            conn.rollback()
+            query = """
+                INSERT INTO jobs (title, skills, keywords, min_experience)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id;
+            """
+            cursor.execute(query, (job.title, job.skills, job.keywords, job.min_experience))
 
     job_id = cursor.fetchone()[0]
     conn.commit()
@@ -247,25 +297,36 @@ def insert_job(job: JobCreate) -> int:
 
 
 def get_all_jobs() -> List[Tuple]:
-    """Fetch all jobs from the database (includes skill_priorities if present)."""
+    """Fetch all jobs from the database (includes extended fields)."""
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
             SELECT id, title, skills, keywords, min_experience, created_at,
                    COALESCE(is_active, TRUE) as is_active,
-                   skill_priorities
+                   skill_priorities,
+                   long_description, work_schedule, salary_range, key_highlights
             FROM jobs
             ORDER BY created_at DESC;
         """)
     except Exception:
         conn.rollback()
-        cursor.execute("""
-            SELECT id, title, skills, keywords, min_experience, created_at,
-                   COALESCE(is_active, TRUE) as is_active
-            FROM jobs
-            ORDER BY created_at DESC;
-        """)
+        try:
+            cursor.execute("""
+                SELECT id, title, skills, keywords, min_experience, created_at,
+                       COALESCE(is_active, TRUE) as is_active,
+                       skill_priorities
+                FROM jobs
+                ORDER BY created_at DESC;
+            """)
+        except Exception:
+            conn.rollback()
+            cursor.execute("""
+                SELECT id, title, skills, keywords, min_experience, created_at,
+                       COALESCE(is_active, TRUE) as is_active
+                FROM jobs
+                ORDER BY created_at DESC;
+            """)
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -273,23 +334,33 @@ def get_all_jobs() -> List[Tuple]:
 
 
 def get_job_by_id(job_id: int):
-    """Fetch a single job by ID (includes skill_priorities if present)."""
+    """Fetch a single job by ID (includes extended fields)."""
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
             SELECT id, title, skills, keywords, min_experience, created_at,
                    COALESCE(is_active, TRUE) as is_active,
-                   skill_priorities
+                   skill_priorities,
+                   long_description, work_schedule, salary_range, key_highlights
             FROM jobs WHERE id = %s;
         """, (job_id,))
     except Exception:
         conn.rollback()
-        cursor.execute("""
-            SELECT id, title, skills, keywords, min_experience, created_at,
-                   COALESCE(is_active, TRUE) as is_active
-            FROM jobs WHERE id = %s;
-        """, (job_id,))
+        try:
+            cursor.execute("""
+                SELECT id, title, skills, keywords, min_experience, created_at,
+                       COALESCE(is_active, TRUE) as is_active,
+                       skill_priorities
+                FROM jobs WHERE id = %s;
+            """, (job_id,))
+        except Exception:
+            conn.rollback()
+            cursor.execute("""
+                SELECT id, title, skills, keywords, min_experience, created_at,
+                       COALESCE(is_active, TRUE) as is_active
+                FROM jobs WHERE id = %s;
+            """, (job_id,))
     row = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -390,27 +461,50 @@ def upsert_ranking(job_id: int, resume_id: int, score: int,
     conn.close()
 
 def get_rankings_for_job(job_id: int):
-    """Retrieve all rankings for a job, ordered by score descending."""
+    """Retrieve all rankings for a job, ordered by score descending. Includes candidate application data."""
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    query = """
-        SELECT
-            r.resume_id,
-            res.filename,
-            r.score,
-            r.created_at,
-            r.breakdown,
-            r.insights,
-            res.upload_source,
-            res.uploaded_by_name
-        FROM rankings r
-        JOIN resumes res ON r.resume_id = res.id
-        WHERE r.job_id = %s
-        ORDER BY r.score DESC;
-    """
+    try:
+        query = """
+            SELECT
+                r.resume_id,
+                res.filename,
+                r.score,
+                r.created_at,
+                r.breakdown,
+                r.insights,
+                res.upload_source,
+                res.uploaded_by_name,
+                a.expected_salary,
+                a.availability,
+                a.candidate_note
+            FROM rankings r
+            JOIN resumes res ON r.resume_id = res.id
+            LEFT JOIN applications a ON a.resume_id = res.id AND a.job_id = r.job_id
+            WHERE r.job_id = %s
+            ORDER BY r.score DESC;
+        """
+        cursor.execute(query, (job_id,))
+    except Exception:
+        conn.rollback()
+        query = """
+            SELECT
+                r.resume_id,
+                res.filename,
+                r.score,
+                r.created_at,
+                r.breakdown,
+                r.insights,
+                res.upload_source,
+                res.uploaded_by_name
+            FROM rankings r
+            JOIN resumes res ON r.resume_id = res.id
+            WHERE r.job_id = %s
+            ORDER BY r.score DESC;
+        """
+        cursor.execute(query, (job_id,))
 
-    cursor.execute(query, (job_id,))
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -804,15 +898,25 @@ def log_audit_event(target_type: str, target_id: int, action: str, reason: str =
 # ─────────────────────────────────────────────
 
 def get_open_jobs():
-    """Return all active/open jobs (for public candidate portal)."""
+    """Return all active/open jobs (for public candidate portal) with extended details."""
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("""
-        SELECT id, title, skills, min_experience, created_at
-        FROM jobs
-        WHERE is_active = true
-        ORDER BY created_at DESC;
-    """)
+    try:
+        cur.execute("""
+            SELECT id, title, skills, min_experience, created_at,
+                   long_description, work_schedule, salary_range, key_highlights
+            FROM jobs
+            WHERE is_active = true
+            ORDER BY created_at DESC;
+        """)
+    except Exception:
+        conn.rollback()
+        cur.execute("""
+            SELECT id, title, skills, min_experience, created_at
+            FROM jobs
+            WHERE is_active = true
+            ORDER BY created_at DESC;
+        """)
     rows = cur.fetchall()
     cur.close()
     conn.close()
@@ -841,15 +945,31 @@ def link_manual_resume_to_job(job_id: int, resume_id: int):
     )
 
 
-def insert_application(job_id: int, resume_id: int, candidate_name: str, candidate_email: str):
-    """Insert a new candidate application and return the application ID."""
+def insert_application(
+    job_id: int, resume_id: int, candidate_name: str, candidate_email: str,
+    expected_salary: str = None, availability: str = None, candidate_note: str = None
+):
+    """Insert a new candidate application with optional preference fields."""
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO applications (job_id, resume_id, candidate_name, candidate_email)
-        VALUES (%s, %s, %s, %s)
-        RETURNING id, submitted_at;
-    """, (job_id, resume_id, candidate_name, candidate_email))
+    _ensure_extended_columns(cur)
+    try:
+        cur.execute("""
+            INSERT INTO applications (
+                job_id, resume_id, candidate_name, candidate_email,
+                expected_salary, availability, candidate_note
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            RETURNING id, submitted_at;
+        """, (job_id, resume_id, candidate_name, candidate_email,
+              expected_salary, availability, candidate_note))
+    except Exception:
+        conn.rollback()
+        cur.execute("""
+            INSERT INTO applications (job_id, resume_id, candidate_name, candidate_email)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id, submitted_at;
+        """, (job_id, resume_id, candidate_name, candidate_email))
     row = cur.fetchone()
     conn.commit()
     cur.close()
@@ -858,16 +978,29 @@ def insert_application(job_id: int, resume_id: int, candidate_name: str, candida
 
 
 def get_resumes_by_job(job_id: int):
-    """Return resumes linked to a specific job via the applications table."""
+    """Return resumes linked to a specific job via the applications table, including candidate preferences."""
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("""
-        SELECT r.id, r.filename, r.uploaded_at, r.experience_years, r.extracted_skills, r.uploaded_by_name, r.upload_source
-        FROM resumes r
-        INNER JOIN applications a ON a.resume_id = r.id
-        WHERE a.job_id = %s
-        ORDER BY r.uploaded_at DESC;
-    """, (job_id,))
+    try:
+        cur.execute("""
+            SELECT r.id, r.filename, r.uploaded_at, r.experience_years,
+                   r.extracted_skills, r.uploaded_by_name, r.upload_source,
+                   a.expected_salary, a.availability, a.candidate_note
+            FROM resumes r
+            INNER JOIN applications a ON a.resume_id = r.id
+            WHERE a.job_id = %s
+            ORDER BY r.uploaded_at DESC;
+        """, (job_id,))
+    except Exception:
+        conn.rollback()
+        cur.execute("""
+            SELECT r.id, r.filename, r.uploaded_at, r.experience_years,
+                   r.extracted_skills, r.uploaded_by_name, r.upload_source
+            FROM resumes r
+            INNER JOIN applications a ON a.resume_id = r.id
+            WHERE a.job_id = %s
+            ORDER BY r.uploaded_at DESC;
+        """, (job_id,))
     rows = cur.fetchall()
     cur.close()
     conn.close()

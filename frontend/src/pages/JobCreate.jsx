@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jobsAPI } from '../services/api';
 import Sidebar from '../components/Sidebar';
-import { Briefcase, Plus, X, AlertCircle, Sparkles, Target, Zap } from 'lucide-react';
+import { Briefcase, Plus, X, AlertCircle, Sparkles, Target, Zap, FileText, Clock, DollarSign, Star } from 'lucide-react';
 
 // ── Priority configuration ────────────────────────────────────────────────
 const PRIORITY_LEVELS = [
@@ -97,7 +97,12 @@ const JobCreate = () => {
         title: '',
         keywords: [],
         min_experience: 0,
+        long_description: '',
+        work_schedule: '',
+        salary_range: '',
     });
+    const [highlights, setHighlights] = useState([]);
+    const [currentHighlight, setCurrentHighlight] = useState('');
     const [skillObjs, setSkillObjs] = useState([]);   // [{ skill, priority, importance_level }]
     const [currentSkill, setCurrentSkill] = useState('');
     const [currentKeyword, setCurrentKeyword] = useState('');
@@ -142,6 +147,15 @@ const JobCreate = () => {
     const removeKeyword = (kw) =>
         setFormData((f) => ({ ...f, keywords: f.keywords.filter((k) => k !== kw) }));
 
+    // ── Highlight handlers ─────────────────────────────────────────────────
+    const addHighlight = () => {
+        const trimmed = currentHighlight.trim();
+        if (!trimmed || highlights.includes(trimmed)) return;
+        setHighlights((prev) => [...prev, trimmed]);
+        setCurrentHighlight('');
+    };
+    const removeHighlight = (h) => setHighlights((prev) => prev.filter((x) => x !== h));
+
     // ── Submit ───────────────────────────────────────────────────────────────
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -162,6 +176,10 @@ const JobCreate = () => {
                     priority: s.priority,
                     importance_level: s.importance_level,
                 })),
+                long_description: formData.long_description || null,
+                work_schedule: formData.work_schedule || null,
+                salary_range: formData.salary_range || null,
+                key_highlights: highlights.length > 0 ? highlights : null,
             };
             await jobsAPI.create(payload);
             navigate('/dashboard');
@@ -348,6 +366,111 @@ const JobCreate = () => {
                                     />
                                     <span className="text-xs text-slate-500 font-medium">years of professional experience</span>
                                 </div>
+                            </div>
+
+                            {/* ── Long Description ───────────────────── */}
+                            <div className="bg-slate-900/40 border border-slate-800 rounded-[2rem] p-8">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <FileText size={16} className="text-blue-400" />
+                                    <label className="text-xs font-black text-slate-300 uppercase tracking-[0.15em]">Job Description</label>
+                                    <span className="text-[10px] text-slate-600 font-medium ml-1">(optional)</span>
+                                </div>
+                                <p className="text-[11px] text-slate-500 font-medium mb-5">Detailed description visible to candidates when applying</p>
+                                <textarea
+                                    value={formData.long_description}
+                                    onChange={(e) => setFormData({ ...formData, long_description: e.target.value })}
+                                    placeholder="Describe the role, responsibilities, team, and what success looks like..."
+                                    maxLength={5000}
+                                    rows={5}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-sm text-white font-medium placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 transition-all resize-y min-h-[120px]"
+                                />
+                                {formData.long_description && (
+                                    <div className="text-right text-[10px] text-slate-600 mt-1">{formData.long_description.length}/5000</div>
+                                )}
+                            </div>
+
+                            {/* ── Work Schedule + Salary ─────────────── */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="bg-slate-900/40 border border-slate-800 rounded-[2rem] p-8">
+                                    <div className="flex items-center gap-2 mb-5">
+                                        <Clock size={16} className="text-blue-400" />
+                                        <label className="text-xs font-black text-slate-300 uppercase tracking-[0.15em]">Work Schedule</label>
+                                    </div>
+                                    <select
+                                        value={formData.work_schedule}
+                                        onChange={(e) => setFormData({ ...formData, work_schedule: e.target.value })}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-sm text-white font-medium focus:outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer"
+                                    >
+                                        <option value="">Select schedule</option>
+                                        <option value="Full-time">Full-time</option>
+                                        <option value="Part-time">Part-time</option>
+                                        <option value="Contract">Contract</option>
+                                        <option value="Freelance">Freelance</option>
+                                        <option value="Internship">Internship</option>
+                                        <option value="Remote">Remote</option>
+                                        <option value="Hybrid">Hybrid</option>
+                                        <option value="On-site">On-site</option>
+                                    </select>
+                                </div>
+
+                                <div className="bg-slate-900/40 border border-slate-800 rounded-[2rem] p-8">
+                                    <div className="flex items-center gap-2 mb-5">
+                                        <DollarSign size={16} className="text-blue-400" />
+                                        <label className="text-xs font-black text-slate-300 uppercase tracking-[0.15em]">Salary Range</label>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={formData.salary_range}
+                                        onChange={(e) => setFormData({ ...formData, salary_range: e.target.value })}
+                                        placeholder="e.g., ₹8-12 LPA or $80k-$120k"
+                                        maxLength={100}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-sm text-white font-medium placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* ── Key Highlights ────────────────────── */}
+                            <div className="bg-slate-900/40 border border-slate-800 rounded-[2rem] p-8">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Star size={16} className="text-blue-400" />
+                                    <label className="text-xs font-black text-slate-300 uppercase tracking-[0.15em]">Key Highlights</label>
+                                    <span className="text-[10px] text-slate-600 font-medium ml-1">(optional)</span>
+                                </div>
+                                <p className="text-[11px] text-slate-500 font-medium mb-5">Perks and benefits candidates will see — e.g., "Remote-first", "Health insurance"</p>
+
+                                <div className="flex gap-3 mb-4">
+                                    <input
+                                        type="text"
+                                        value={currentHighlight}
+                                        onChange={(e) => setCurrentHighlight(e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addHighlight(); } }}
+                                        placeholder="e.g., Flexible hours, Stock options"
+                                        maxLength={100}
+                                        className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-5 py-3.5 text-sm text-white font-medium placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 transition-all"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={addHighlight}
+                                        className="flex items-center gap-1.5 px-5 py-3.5 rounded-2xl text-xs font-black bg-blue-600/10 text-blue-400 border border-blue-500/30 hover:bg-blue-600/20 transition-all active:scale-95"
+                                    >
+                                        <Plus size={14} />
+                                        Add
+                                    </button>
+                                </div>
+
+                                {highlights.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {highlights.map((h, idx) => (
+                                            <span key={idx} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 rounded-xl">
+                                                <Star size={10} className="text-emerald-400" />
+                                                {h}
+                                                <button type="button" onClick={() => removeHighlight(h)} className="text-emerald-400/60 hover:text-white transition-colors">
+                                                    <X size={12} />
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             {/* ── Form Actions ────────────────────────── */}
