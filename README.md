@@ -19,5 +19,5 @@ The system utilizes a decoupled architecture comprising:
 - PostgreSQL
 - Redis (CELERY)
 
-##Note :- Still in developing state will provide actual data soon 
+## Note :- Still in developing state will provide actual data soon 
 
