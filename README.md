@@ -12,3 +12,12 @@ The system utilizes a decoupled architecture comprising:
 - **Asynchronous Pipeline:** Redis-backed worker queues for processing and ranking resumes.
 - **Frontend Layer:** React applications managing user interfaces and job creation modules.
 - **Storage Layer:** PostgreSQL for relational data and Supabase for persistent object storage.
+
+## Pre-requisites
+- Python 3.10+
+- Node.js 18+
+- PostgreSQL
+- Redis (CELERY)
+
+##Note :- Still in developing state will provide actual data soon 
+
